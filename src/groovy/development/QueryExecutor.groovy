@@ -15,8 +15,6 @@ class QueryExecutor {
             println responses
             def mapping = CachedConfigParser.getAttributeMap(desc)
             println mapping
-            //TODO ResponseParser
-            responses
             responses.each { response ->
                 def instance = Class.forName(desc.entityName).get(response[mapping["id"]])?:Class.forName(desc.entityName).newInstance()
                 mapping.each {

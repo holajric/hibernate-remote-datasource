@@ -1,6 +1,7 @@
 package development
 
 import query.Operation
+import query.Operator
 
 class Test {
     String name
@@ -11,6 +12,9 @@ class Test {
             "queryType": "Rest",
             "mapping": [
                     "name": "otherName"
+            ],
+            "queryMapping": [
+                    "date BETWEEN": "from=[:lowerBound]&to=[:upperBound]"
             ],
             "allowed": [ Operation.READ ],
             "operations":[
