@@ -13,17 +13,15 @@ class RestDataSourceConnector implements DataSourceConnector {
 
     Object read(RemoteQuery query)  {
         String methodName = query.method.toLowerCase()
-        println query.url
         def response = rest."$methodName"(query.url)
         if(!(response instanceof RestResponse))    {
             return null
         }
-        if(response.json instanceof JSONObject)
-            response.json
+        if(!(response.json instanceof JSONArray))
+            return [response.json]
         List<JSONObject> responseList = []
         for(def i = 0; i < response.json.length(); i++)
             responseList.add(response.json.getJSONObject(i))
-        println responseList
         responseList
 
     }

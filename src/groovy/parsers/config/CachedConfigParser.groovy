@@ -48,45 +48,18 @@ class CachedConfigParser {
         if(!attributeMapping[desc.entityName]) {
             attributeMapping[desc.entityName] = [:]
             new DefaultGrailsDomainClass(Class.forName(desc.entityName)).properties.each { it ->
-                def currentMapping = mapping?."$desc.entityName"?."mapping"?."${it.name}"
                 if(it.name != "version")
-                    attributeMapping?."$desc.entityName"?."${it.name}" = currentMapping?."remote_name"?:(currentMapping?:it.name)
+                    attributeMapping?."$desc.entityName"?."${it.name}" = mapping?."$desc.entityName"?."mapping"?."${it.name}" ?: it.name
             }
         }
         attributeMapping[desc.entityName]
     }
 
-    static Map<String, Object> getAttributeOperation(QueryDescriptor desc, String attribute)   {
-        if(!isRemote(Class.forName(desc.entityName)))
+    static Map<String, Object> getQueryOperation(QueryDescriptor desc)   {
+        if(!isOperationAllowed(desc))
             return null
-        if(!mapping?."$desc.entityName"?."mapping"?."operations"?.getAt(desc.operation)) {
-            if(!mapping?."$desc.entityName"?."operations"?.getAt(desc.operation)) {
-                mapping?."$desc.entityName"?."mapping"?."operations"?.putAt(desc.operation, [:]) //THERE WILL BE DEFAULT
-            }
-            mapping?."$desc.entityName""mapping"?."operations"?.putAt(desc.operation, mapping?."$desc.entityName"?."operations"?.getAt(desc.operation))
-        }
-        mapping[desc.entityName]["$attribute"]["operations"][desc.operation]
-    }
-
-    static Map<String, Map<String, Object>> getQueryOperations(QueryDescriptor desc)   {
-        if(!isRemote(Class.forName(desc.entityName)))
-            return null
-        Map<String, Map<String, Object>> attributesOperations = new HashMap<String, Map<String,Object>>()
-        new DefaultGrailsDomainClass(Class.forName(desc.entityName)).properties.each { it ->
-            if(it.name != "version") {
-                if (mapping?."$desc.entityName"?."mapping"?."$it.name" instanceof String || !mapping?."$desc.entityName"?."mapping"?."$it.name"?."operations"?.getAt(desc.operation)) {
-                    if (!mapping?."$desc.entityName"?."mapping"?."$it.name" || mapping?."$desc.entityName"?."mapping"?."$it.name" instanceof String)
-                        mapping?."$desc.entityName"?."mapping"?."$it.name" = ["remote_name": mapping?."$desc.entityName"?."mapping"?."$it.name" ?: "$it.name", "operations": [:]]
-                    if(!mapping?."$desc.entityName"?."mapping"?."$it.name"?."operations")
-                        mapping?."$desc.entityName"?."mapping"?."$it.name"?."operations" = [:]
-                    if (!mapping?."$desc.entityName"?."operations"?.getAt(desc.operation))
-                        mapping?."$desc.entityName"?."mapping"?."$it.name"?."operations"?.putAt(desc.operation, [:]) //THERE WILL BE DEFAULT
-                    mapping?."$desc.entityName"?."mapping"?."$it.name"?."operations"?.putAt(desc.operation, mapping?."$desc.entityName"?."operations"?.getAt(desc.operation))
-                }
-                attributesOperations?.putAt("$it.name", mapping?."$desc.entityName"?."mapping"?."$it.name"?."operations"?.getAt(desc.operation))
-            }
-        }
-
-        attributesOperations
+        if(!mapping?."$desc.entityName"?."operations"?.getAt(desc.operation))
+            mapping?."$desc.entityName"?."operations"?.putAt(desc.operation, [:]) //THERE WILL BE DEFAULT
+        mapping?."$desc.entityName"?."operations"?.getAt(desc.operation)
     }
 }

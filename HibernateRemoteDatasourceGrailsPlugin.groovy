@@ -5,7 +5,7 @@ import org.codehaus.groovy.grails.orm.hibernate.HibernateDatastore
 import parsers.calling.GormApiParser
 import parsers.calling.GormApiParser
 
-class BachelorThesisGrailsPlugin {
+class HibernateRemoteDatasourceGrailsPlugin {
     // the plugin version
     def version = "0.1"
     // the version or versions of Grails the plugin is designed for
@@ -16,9 +16,9 @@ class BachelorThesisGrailsPlugin {
     ]
 
     // TODO Fill in these fields
-    def title = "Development Plugin" // Headline display name of the plugin
-    def author = "Your name"
-    def authorEmail = ""
+    def title = "Hibernate Remote Datasource" // Headline display name of the plugin
+    def author = "Richard Holaj"
+    def authorEmail = "holajr22@gmail.com"
     def description = '''\
 Brief summary/description of the plugin.
 '''

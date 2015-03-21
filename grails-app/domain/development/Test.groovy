@@ -10,7 +10,7 @@ class Test {
             "sourceType": "Rest",
             "queryType": "Rest",
             "mapping": [
-                    "name": "otherName" //shorthand syntax other possibility is full config map or can also skip in case it is same
+                    "name": "otherName"
             ],
             "allowed": [ Operation.READ ],
             "operations":[
