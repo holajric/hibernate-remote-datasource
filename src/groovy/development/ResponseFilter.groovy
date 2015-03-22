@@ -1,5 +1,6 @@
 package development
 
+import parsers.config.CachedConfigParser
 import query.IntervalCondition
 import query.QueryDescriptor
 import query.SimpleCondition
@@ -10,15 +11,24 @@ import query.SimpleCondition
 class ResponseFilter {
     boolean isValid(instance, QueryDescriptor desc) {
         desc.conditions.each {
-            def method = underscoreToCamelCase(it.comparator.toString())
-            if(it instanceof IntervalCondition)
-                this."$method"(instance."${it.attribute}", it.lowerBound, it.upperBound)
-            else if(it instanceof SimpleCondition)
-                this."$method"(instance."${it.attribute}", it.value)
-            else
-                this."$method"(instance."${it.attribute}")
+            if(CachedConfigParser.mapping[desc.entityName]?."local"?.contains(it.attribute))
+                return false
+
+                def method = underscoreToCamelCase(it.comparator.toString())
+                if (it instanceof IntervalCondition) {
+                    if (!this."$method"(instance."${it.attribute}", it.lowerBound, it.upperBound))
+                        return false
+                }
+                else if (it instanceof SimpleCondition) {
+                    if (!this."$method"(instance."${it.attribute}", it.value))
+                        return false
+                }
+                else {
+                    if(!this."$method"(instance."${it.attribute}"))
+                        return false
+                }
         }
-        return true
+        true
     }
 
     boolean inList(attribute, list) {

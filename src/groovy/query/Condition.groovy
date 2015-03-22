@@ -7,7 +7,11 @@ class Condition {
     String attribute
     Operator comparator
 
-    String toString()   {
+    String conditionString()    {
         attribute + " " + comparator.toString()
+    }
+
+    String toString()   {
+        conditionString()
     }
 }

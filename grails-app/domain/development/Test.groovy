@@ -4,6 +4,8 @@ import query.Operation
 
 class Test {
     String name
+    Integer number
+    String test
 
     static remoteMapping = [
             "baseUrl": "http://demo5451883.mockable.io/",
@@ -13,12 +15,12 @@ class Test {
                     "name": "otherName"
             ],
             "queryMapping": [
-                    "date BETWEEN": "from=[:lowerBound]&to=[:upperBound]"
+                    "number BETWEEN": "from=:lowerBound&to=:upperBound"
             ],
             "paramMapping": [
                     "max": "limit"
             ],
-            "local": ["test"],
+            "local": ["number"],
             "allowed": [ Operation.READ ],
             "operations":[
                     (Operation.READ):[
