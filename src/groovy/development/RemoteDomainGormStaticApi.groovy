@@ -22,21 +22,22 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
 
     @Override
     public D get(Serializable id)   {
-        if(CachedConfigParser.isRemote(persistentClass)) {
+        //Class.forName(persistentClass.getName()).findById(id)
+        /*if(CachedConfigParser.isRemote(persistentClass)) {
             def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), "findById", [id])
             QueryExecutor.executeQuery(queryDescriptor)
         }
-        super.get(id)
+        super.get(id)*/
     }
 
-    @Override
+    /*@Override
     List<D> findAll(example, Map args) {
         if(CachedConfigParser.isRemote(persistentClass)) {
             def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), "findAll", [])
             QueryExecutor.executeQuery(queryDescriptor)
         }
         super.findAll(example, args)
-    }
+    }*/
 
     @Override
     List<D> list(Map params) {
@@ -59,7 +60,6 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
     @Override
     @CompileStatic(TypeCheckingMode.SKIP)
     def methodMissing(String methodName, Object args) {
-        println "TU"
         FinderMethod method = gormDynamicFinders.find { FinderMethod f -> f.isMethodMatch(methodName) }
         if (!method) {
             throw new MissingMethodException(methodName, persistentClass, args)

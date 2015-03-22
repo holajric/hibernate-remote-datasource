@@ -53,16 +53,13 @@ class GormApiParser implements CallingParser {
                 subquery = Introspector.decapitalize(subquery)
                 if (subquery.contains("Between")) {
                     subquery = subquery.replace("Between", "")
-                    queryDesc.attributes.add(subquery)
                     queryDesc.conditions.add(new IntervalCondition(attribute: subquery, comparator: Operator.BETWEEN, lowerBound: params[counter], upperBound: params[counter + 1]))
                     counter += 2
                 } else if (subquery.contains("IsNotNull")) {
                     subquery = subquery.replace("IsNotNull", "")
-                    queryDesc.attributes.add(subquery)
                     queryDesc.conditions.add(new Condition(attribute: subquery, comparator: Operator.IS_NOT_NULL))
                 } else if (subquery.contains("IsNull")) {
                     subquery = subquery.replace("IsNull", "")
-                    queryDesc.attributes.add(subquery)
                     queryDesc.conditions.add(new Condition(attribute: subquery, comparator: Operator.IS_NULL))
                 } else {
                     Operator operator = Operator.EQUALS
@@ -72,7 +69,6 @@ class GormApiParser implements CallingParser {
                             operator = Operator.values()[i]
                         }
                     }
-                    queryDesc.attributes.add(subquery)
                     queryDesc.conditions.add(new SimpleCondition(attribute: subquery, comparator: operator, value: params[counter]))
                     counter++
                 }

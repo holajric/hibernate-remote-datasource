@@ -1,7 +1,6 @@
 package development
 
 import query.Operation
-import query.Operator
 
 class Test {
     String name
@@ -16,6 +15,10 @@ class Test {
             "queryMapping": [
                     "date BETWEEN": "from=[:lowerBound]&to=[:upperBound]"
             ],
+            "paramMapping": [
+                    "max": "limit"
+            ],
+            "local": ["test"],
             "allowed": [ Operation.READ ],
             "operations":[
                     (Operation.READ):[
