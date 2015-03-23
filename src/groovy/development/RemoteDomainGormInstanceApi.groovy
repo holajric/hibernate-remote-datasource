@@ -11,6 +11,7 @@ import parsers.config.CachedConfigParser
 class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     CallingParser callingParserService
     QueryExecutor queryExecutor
+
     RemoteDomainGormInstanceApi(Class<D> persistentClass, HibernateDatastore datastore, ClassLoader classLoader, CallingParser callingParserService) {
         super(persistentClass, datastore, classLoader)
         this.callingParserService = callingParserService
@@ -20,7 +21,7 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     public D save(D instance) {
         if(CachedConfigParser.isRemote(instance.class)) {
             def queryDescriptor = callingParserService.parseInstanceMethod(instance.id ? "update" : "save", instance)
-            queryExecutor.executeQuery(queryDescriptor)
+            queryExecutor.executeQuery(queryDescriptor, instance)
         }
         super.save(instance)
     }
@@ -28,7 +29,7 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     public D save(D instance, boolean validate) {
         if(CachedConfigParser.isRemote(instance.class)) {
             def queryDescriptor = callingParserService.parseInstanceMethod(instance.id ? "update" : "save", instance)
-            queryExecutor.executeQuery(queryDescriptor)
+            queryExecutor.executeQuery(queryDescriptor, instance)
         }
         super.save(instance,validate)
     }
@@ -36,7 +37,7 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     public D save(D instance, java.util.Map params) {
         if(CachedConfigParser.isRemote(instance.class)) {
             def queryDescriptor = callingParserService.parseInstanceMethod(instance.id ? "update" : "save", instance)
-            queryExecutor.executeQuery(queryDescriptor)
+            queryExecutor.executeQuery(queryDescriptor, instance)
         }
         super.save(instance,params)
     }
@@ -44,7 +45,7 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     public void delete(D instance) {
         if(CachedConfigParser.isRemote(instance.class)) {
             def queryDescriptor = callingParserService.parseInstanceMethod("delete", instance)
-            queryExecutor.executeQuery(queryDescriptor)
+            queryExecutor.executeQuery(queryDescriptor, instance)
         }
 
         super.delete(instance)
@@ -53,7 +54,7 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     public void delete(D instance, java.util.Map params) {
         if(CachedConfigParser.isRemote(instance.class)) {
             def queryDescriptor = callingParserService.parseInstanceMethod("delete", instance)
-            queryExecutor.executeQuery(queryDescriptor)
+            queryExecutor.executeQuery(queryDescriptor, instance)
         }
         super.delete(instance,params)
     }

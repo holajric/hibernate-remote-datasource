@@ -8,7 +8,7 @@ class Test {
     String test
 
     static remoteMapping = [
-            "baseUrl": "http://demo5451883.mockable.io/",
+            "baseUrl": "http://localhost:8080/development/",
             "sourceType": "Rest",
             "queryType": "Rest",
             "mapping": [
@@ -21,12 +21,16 @@ class Test {
                     "max": "limit"
             ],
             "local": ["number"],
-            "allowed": [ Operation.READ ],
+            "allowed": [ Operation.READ, Operation.CREATE ],
             "operations":[
                     (Operation.READ):[
                         "endpoint": "remoteTest/show/[:id]",
                         "queryEndpoint": "remoteTest",
                         "method": "GET"
+                    ],
+                    (Operation.CREATE):[
+                            "endpoint": "remoteTest/save",
+                            "method": "POST"
                     ]
             ]
     ]

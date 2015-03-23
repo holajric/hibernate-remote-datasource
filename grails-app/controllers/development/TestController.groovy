@@ -7,7 +7,9 @@ class TestController {
         def t2 =  new Test(name:"test").save()
         t2.name = "test2"
         t2.save()*/
+        def t = new Test(name:"test",number: 10, test:"nope")
+        t.save()
         //def remote = new RemoteTest(otherName: "test").save(failOnError: true, flush: true)
-        println Test.findAllByNumberBetween(1, 10)*.name//findByNameAndIdBetween("test", 1, 10)
+        println Test.findAll()*.name//findByNameAndIdBetween("test", 1, 10)
     }
 }

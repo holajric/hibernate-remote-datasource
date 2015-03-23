@@ -28,7 +28,7 @@ class GormApiParser implements CallingParser {
     ]
 
     QueryDescriptor parseFinder(String clazz, String finder, params)   {
-        println finder
+
         def splitted = finder.replaceFirst(/By/,"<SPLIT>").split(/<SPLIT>/)
         String operation = splitted?.getAt(0)
         String query
@@ -84,7 +84,7 @@ class GormApiParser implements CallingParser {
 
         if(operation == "find")
                 queryDesc.paginationSorting["limit"] = 1
-        println queryDesc
+
         return queryDesc
     }
 

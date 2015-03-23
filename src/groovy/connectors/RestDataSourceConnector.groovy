@@ -28,7 +28,7 @@ class RestDataSourceConnector implements DataSourceConnector {
 
     boolean write(RemoteQuery query, Object data)   {
         String methodName = query.method.toLowerCase()
-        def response = rest."$methodName"(query.url) { json: query.data }
+        def response = rest."$methodName"(query.url) { json: query.dataJson }
         (response instanceof RestResponse) ? true : false
     }
 }

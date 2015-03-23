@@ -3,6 +3,7 @@ package query.builder
 import parsers.config.CachedConfigParser
 import query.ConditionJoin
 import query.IntervalCondition
+import query.Operation
 import query.Operator
 import query.QueryDescriptor
 import query.SimpleCondition
@@ -12,9 +13,15 @@ import query.SimpleCondition
  */
 class RestQueryBuilder implements QueryBuilder {
     RestRemoteQuery generateQuery(QueryDescriptor desc) {
+        println desc
+
         def url = CachedConfigParser.mapping[desc.entityName]["baseUrl"]
         def operation = CachedConfigParser.getQueryOperation(desc)
+
         String tempUrl = url
+        if(desc.operation == Operation.CREATE)  {
+            return new RestRemoteQuery(method: operation["method"], url: tempUrl + operation["endpoint"])
+        }
         if(desc.conditionJoin == ConditionJoin.NONE ) {
             if (!desc.conditions.empty) {
                 if (!CachedConfigParser.mapping[desc.entityName]?."local"?.contains(desc.conditions[0].attribute)) {

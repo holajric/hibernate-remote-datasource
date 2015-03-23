@@ -16,8 +16,8 @@ class RemoteTestController {
         respond RemoteTest.list(params), [status: OK]
     }
 
-    def show(Long id)   {
-        def remoteTest = RemoteTest.get(id)
+    def show(Long id) {
+        def remoteTest = RemoteTest.findById(id)
         if (remoteTest == null) {
             render status: NOT_FOUND
             return
