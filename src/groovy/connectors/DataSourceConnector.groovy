@@ -7,5 +7,5 @@ import query.builder.RemoteQuery
  */
 public interface DataSourceConnector {
     Object read(RemoteQuery query)
-    boolean write(RemoteQuery query, Object data)
+    Object write(RemoteQuery query, Object data)
 }

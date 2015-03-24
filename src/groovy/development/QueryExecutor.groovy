@@ -15,8 +15,16 @@ class QueryExecutor {
         println instance
         if(CachedConfigParser.isOperationAllowed(desc)) {
             def remoteQuery = CachedConfigParser.getQueryBuilder(desc).generateQuery(desc)
-            if(instance)
-               remoteQuery.dataJson = instance as JSON
+            if(instance) {
+                if(!remoteQuery.dataJson)
+                    remoteQuery.dataJson = [:]
+                CachedConfigParser.attributeMapping[desc.entityName].each {
+                    if(instance."$it.key") {
+                        remoteQuery.dataJson."$it.value" =  instance."$it.key"
+                    }
+                }
+                println remoteQuery.dataJson
+            }
             def connector = CachedConfigParser.getDataSourceConnector(desc)
             List<JSONObject> responses
             if(desc.operation == Operation.READ) {

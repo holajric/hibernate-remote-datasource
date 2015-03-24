@@ -13,6 +13,7 @@ class RemoteTestController {
 
     def index(Integer max) {
         params.max = Math.min(max ?: 10, 100)
+        println RemoteTest.list(params)
         respond RemoteTest.list(params), [status: OK]
     }
 
@@ -22,6 +23,7 @@ class RemoteTestController {
             render status: NOT_FOUND
             return
         }
+        println remoteTest
         respond remoteTest, [status: OK]
     }
 

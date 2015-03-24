@@ -11,11 +11,11 @@ import query.builder.*
 class RestDataSourceConnector implements DataSourceConnector {
     def rest = new RestBuilder()
 
-    Object read(RemoteQuery query)  {
+    List<JSONObject> read(RemoteQuery query)  {
         String methodName = query.method.toLowerCase()
         def response = rest."$methodName"(query.url)
         if(!(response instanceof RestResponse))    {
-            return null
+            return []
         }
         if(!(response.json instanceof JSONArray))
             return [response.json]
@@ -26,9 +26,14 @@ class RestDataSourceConnector implements DataSourceConnector {
 
     }
 
-    boolean write(RemoteQuery query, Object data)   {
+    JSONObject write(RemoteQuery query, Object data)   {
         String methodName = query.method.toLowerCase()
-        def response = rest."$methodName"(query.url) { json: query.dataJson }
-        (response instanceof RestResponse) ? true : false
+        def response = rest."$methodName"(query.url) {
+            json: query.dataJson
+            contentType "application/json"
+        }
+        println response.getStatus()
+        println (response instanceof RestResponse) ? true : false
+        return response?.json
     }
 }
