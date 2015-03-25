@@ -17,6 +17,7 @@ class RestDataSourceConnector implements DataSourceConnector {
         if(!(response instanceof RestResponse))    {
             return []
         }
+
         if(!(response.json instanceof JSONArray))
             return [response.json]
         List<JSONObject> responseList = []
@@ -29,11 +30,10 @@ class RestDataSourceConnector implements DataSourceConnector {
     JSONObject write(RemoteQuery query, Object data)   {
         String methodName = query.method.toLowerCase()
         def response = rest."$methodName"(query.url) {
-            json: query.dataJson
+            json query.dataJson.toString()
             contentType "application/json"
         }
-        println response.getStatus()
-        println (response instanceof RestResponse) ? true : false
+        println response?.getStatus()
         return response?.json
     }
 }
