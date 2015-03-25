@@ -4,6 +4,7 @@ package development
 
 import static org.springframework.http.HttpStatus.*
 import grails.transaction.Transactional
+import grails.converters.JSON
 
 @Transactional(readOnly = true)
 class RemoteTestController {
@@ -13,8 +14,8 @@ class RemoteTestController {
 
     def index(Integer max) {
         params.max = Math.min(max ?: 10, 100)
-        println RemoteTest.list(params)
-        respond RemoteTest.list(params), [status: OK]
+        //respond RemoteTest.list(params), [status: OK]
+        render RemoteTest.list(params) as JSON
     }
 
     def show(Long id) {
@@ -23,8 +24,8 @@ class RemoteTestController {
             render status: NOT_FOUND
             return
         }
-        println remoteTest
-        respond remoteTest, [status: OK]
+        //respond remoteTest, [status: OK]
+        render remoteTest as JSON
     }
 
     @Transactional

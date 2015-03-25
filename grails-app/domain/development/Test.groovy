@@ -20,7 +20,7 @@ class Test {
             "paramMapping": [
                     "max": "limit"
             ],
-            "local": ["number"],
+            "local": ["test","number"],
             "allowed": [ Operation.READ, Operation.CREATE ],
             "operations":[
                     (Operation.READ):[

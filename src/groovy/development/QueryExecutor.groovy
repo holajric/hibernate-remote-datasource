@@ -12,7 +12,6 @@ import query.Operation
 class QueryExecutor {
 
     static boolean executeQuery(QueryDescriptor desc, Object instance = null)  {
-        println instance
         if(CachedConfigParser.isOperationAllowed(desc)) {
             def remoteQuery = CachedConfigParser.getQueryBuilder(desc).generateQuery(desc)
             if(instance) {
@@ -23,13 +22,11 @@ class QueryExecutor {
                         remoteQuery.dataJson."$it.value" =  instance."$it.key"
                     }
                 }
-                println remoteQuery.dataJson
             }
             def connector = CachedConfigParser.getDataSourceConnector(desc)
             List<JSONObject> responses
             if(desc.operation == Operation.READ) {
                 responses = connector.read(remoteQuery)
-
                 def mapping = CachedConfigParser.getAttributeMap(desc)
                 ResponseFilter filter = new ResponseFilter()
                 responses.each { response ->
@@ -46,8 +43,7 @@ class QueryExecutor {
             }
 
             if(desc.operation == Operation.CREATE) {
-                println remoteQuery
-                println connector.write(remoteQuery, remoteQuery.dataJson)
+                connector.write(remoteQuery, remoteQuery.dataJson)
             }
         }
 
