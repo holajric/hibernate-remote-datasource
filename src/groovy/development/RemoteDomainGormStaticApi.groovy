@@ -70,7 +70,7 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
     boolean synchronize(methodName, args)   {
         if(CachedConfigParser.isRemote(persistentClass)) {
             def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), methodName, args)
-            return QueryExecutor.executeQuery(queryDescriptor)
+            return QueryExecutor.executeFinderQuery(queryDescriptor)
         }
         true
     }

@@ -69,10 +69,10 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
                     operationLoc = Operation.UPDATE
                     break
             }
-            def log = new JournalLog(entity: instance.class.name ,instanceId: instance?.id, operation: operationLoc, isFinished: false)
+            def log = new JournalLog(entity: instance.class.name, instanceId: instance?.id, operation: operationLoc, isFinished: false)
             log.save()
             def queryDescriptor = callingParserService.parseInstanceMethod(operation, instance)
-            def result = queryExecutor.executeQuery(queryDescriptor, instance)
+            def result = queryExecutor.executeInstanceQuery(queryDescriptor, instance)
             log.isFinished = true
             log.save()
             return result

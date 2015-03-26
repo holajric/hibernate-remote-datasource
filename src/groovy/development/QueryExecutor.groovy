@@ -11,42 +11,49 @@ import query.Operation
 @Transactional
 class QueryExecutor {
 
-    static boolean executeQuery(QueryDescriptor desc, Object instance = null)  {
+    static boolean executeFinderQuery(QueryDescriptor desc)  {
         if(CachedConfigParser.isOperationAllowed(desc)) {
             def remoteQuery = CachedConfigParser.getQueryBuilder(desc).generateQuery(desc)
-            if(instance) {
-                if(!remoteQuery.dataJson)
-                    remoteQuery.dataJson = [:]
-                CachedConfigParser.attributeMapping[desc.entityName].each {
-                    if(instance."$it.key") {
-                        remoteQuery.dataJson."$it.value" =  instance."$it.key"
-                    }
+            def connector = CachedConfigParser.getDataSourceConnector(desc)
+            List<JSONObject> responses = connector.read(remoteQuery)
+            processResponses(responses, desc)
+        }
+        return true
+    }
+
+    static boolean executeInstanceQuery(QueryDescriptor desc, Object instance)   {
+        if(CachedConfigParser.isOperationAllowed(desc)) {
+            def remoteQuery = CachedConfigParser.getQueryBuilder(desc).generateQuery(desc)
+            remoteQuery.dataJson = [:]
+            CachedConfigParser.attributeMapping[desc.entityName].each {
+                if(instance."$it.key") {
+                    remoteQuery.dataJson."$it.value" =  instance."$it.key"
                 }
             }
             def connector = CachedConfigParser.getDataSourceConnector(desc)
-            List<JSONObject> responses
-            if(desc.operation == Operation.READ) {
-                responses = connector.read(remoteQuery)
-                def mapping = CachedConfigParser.getAttributeMap(desc)
-                ResponseFilter filter = new ResponseFilter()
-                responses.each { response ->
-                    if (filter.isValid(response, desc)) {
-                        def instanceTemp = Class.forName(desc.entityName).get(response[mapping["id"]]) ?: Class.forName(desc.entityName).newInstance()
-                        mapping.each {
-                            if (response["$it.value"]) {
-                                instanceTemp."$it.key" = response["$it.value"]
-                            }
-                        }
-                        instanceTemp.save()
+            if(desc.operation == Operation.DELETE)  {
+                return connector.doAction(remoteQuery)
+            }
+            List<JSONObject> responses = connector.write(remoteQuery, remoteQuery.dataJson)
+            processResponses(responses, desc)
+        }
+        return true
+    }
+
+    static private processResponses(List<JSONObject> responses, QueryDescriptor desc)   {
+        def mapping = CachedConfigParser.getAttributeMap(desc)
+        ResponseFilter filter = new ResponseFilter()
+        responses.each { response ->
+            if (filter.isValid(response, desc)) {
+                def instanceTemp = Class.forName(desc.entityName).get(response[mapping["id"]]) ?: Class.forName(desc.entityName).newInstance()
+                mapping.each {
+                    if (response["$it.value"]) {
+                        instanceTemp."$it.key" = response["$it.value"]
                     }
                 }
-            }
-
-            if(desc.operation == Operation.CREATE) {
-                connector.write(remoteQuery, remoteQuery.dataJson)
+                instanceTemp.save()
             }
         }
-
-        true
     }
+
 }
