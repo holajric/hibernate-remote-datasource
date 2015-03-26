@@ -4,6 +4,8 @@ import org.codehaus.groovy.grails.orm.hibernate.HibernateGormInstanceApi
 import org.codehaus.groovy.grails.orm.hibernate.HibernateDatastore
 import parsers.calling.CallingParser
 import parsers.config.CachedConfigParser
+import query.Operation
+import synchronisation.JournalLog
 
 /**
  * Created by richard on 1.3.15.
@@ -19,43 +21,62 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     }
 
     public D save(D instance) {
-        if(CachedConfigParser.isRemote(instance.class)) {
-            def queryDescriptor = callingParserService.parseInstanceMethod(instance.id ? "update" : "save", instance)
-            queryExecutor.executeQuery(queryDescriptor, instance)
-        }
-        super.save(instance)
+        boolean isNew = (instance?.id != null)
+        D savedInstance = super.save(instance)
+        synchronize(!isNew ? "update" : "save", instance)
+        savedInstance
     }
 
     public D save(D instance, boolean validate) {
-        if(CachedConfigParser.isRemote(instance.class)) {
-            def queryDescriptor = callingParserService.parseInstanceMethod(instance.id ? "update" : "save", instance)
-            queryExecutor.executeQuery(queryDescriptor, instance)
-        }
-        super.save(instance,validate)
+        boolean isNew = (instance?.id != null)
+        D savedInstance = super.save(instance, validate)
+        synchronize(!isNew ? "update" : "save", instance)
+        savedInstance
     }
 
     public D save(D instance, java.util.Map params) {
-        if(CachedConfigParser.isRemote(instance.class)) {
-            def queryDescriptor = callingParserService.parseInstanceMethod(instance.id ? "update" : "save", instance)
-            queryExecutor.executeQuery(queryDescriptor, instance)
-        }
-        super.save(instance,params)
+        boolean isNew = (instance?.id != null)
+        D savedInstance = super.save(instance, params)
+        synchronize(!isNew ? "update" : "save", instance)
+        savedInstance
     }
 
     public void delete(D instance) {
-        if(CachedConfigParser.isRemote(instance.class)) {
-            def queryDescriptor = callingParserService.parseInstanceMethod("delete", instance)
-            queryExecutor.executeQuery(queryDescriptor, instance)
-        }
-
         super.delete(instance)
+        synchronize("delete", instance)
     }
 
     public void delete(D instance, java.util.Map params) {
+        super.delete(instance, params)
+        synchronize("delete", instance)
+    }
+
+    private boolean synchronize(operation, instance)    {
         if(CachedConfigParser.isRemote(instance.class)) {
-            def queryDescriptor = callingParserService.parseInstanceMethod("delete", instance)
-            queryExecutor.executeQuery(queryDescriptor, instance)
+            if(JournalLog.findByEntityAndInstanceIdAndIsFinished(instance.class.name, instance?.id, false)) {
+                //some sync/lock exception/message
+                return
+            }
+            def operationLoc
+            switch(operation)   {
+                case "delete":
+                    operationLoc = Operation.DELETE
+                    break
+                case "save":
+                    operationLoc = Operation.CREATE
+                    break
+                case "update":
+                    operationLoc = Operation.UPDATE
+                    break
+            }
+            def log = new JournalLog(entity: instance.class.name ,instanceId: instance?.id, operation: operationLoc, isFinished: false)
+            log.save()
+            def queryDescriptor = callingParserService.parseInstanceMethod(operation, instance)
+            def result = queryExecutor.executeQuery(queryDescriptor, instance)
+            log.isFinished = true
+            log.save()
+            return result
         }
-        super.delete(instance,params)
+        return true
     }
 }

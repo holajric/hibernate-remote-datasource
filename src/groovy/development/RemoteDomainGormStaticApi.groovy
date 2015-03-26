@@ -8,7 +8,8 @@ import org.codehaus.groovy.grails.orm.hibernate.HibernateGormStaticApi
 import org.codehaus.groovy.grails.orm.hibernate.HibernateDatastore
 import parsers.calling.CallingParser
 import parsers.config.CachedConfigParser
-import query.QueryDescriptor
+import query.Operation
+import synchronisation.JournalLog
 
 /**
  * Created by richard on 1.3.15.
@@ -22,38 +23,26 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
 
     @Override
     public D get(Serializable id)   {
-        //Class.forName(persistentClass.getName()).findById(id)
-        /*if(CachedConfigParser.isRemote(persistentClass)) {
-            def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), "findById", [id])
-            QueryExecutor.executeQuery(queryDescriptor)
+        if(JournalLog.findByEntityAndInstanceIdAndIsFinished(persistentClass.getName(), id, false)) {
+            //some sync/lock exception/message
+            return super.get(id)
         }
-        super.get(id)*/
+        def log = new JournalLog(entity: persistentClass.getName() ,instanceId: id, operation: Operation.READ, isFinished: false).save()
+        println synchronize("findById", [id])
+        log.isFinished = true
+        log.save()
+        super.get(id)
     }
-
-    /*@Override
-    List<D> findAll(example, Map args) {
-        if(CachedConfigParser.isRemote(persistentClass)) {
-            def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), "findAll", [])
-            QueryExecutor.executeQuery(queryDescriptor)
-        }
-        super.findAll(example, args)
-    }*/
 
     @Override
     List<D> list(Map params) {
-        if(CachedConfigParser.isRemote(persistentClass)) {
-            def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), "findAll", [])
-            QueryExecutor.executeQuery(queryDescriptor)
-        }
+        synchronize("findAll", [])
         super.list(params)
     }
 
     @Override
     List<D> list() {
-        if(CachedConfigParser.isRemote(persistentClass)) {
-            def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), "findAll", [])
-            QueryExecutor.executeQuery(queryDescriptor)
-        }
+        synchronize("findAll", [])
         super.list()
     }
 
@@ -61,24 +50,28 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
     @CompileStatic(TypeCheckingMode.SKIP)
     def methodMissing(String methodName, Object args) {
         FinderMethod method = gormDynamicFinders.find { FinderMethod f -> f.isMethodMatch(methodName) }
+
         if (!method) {
             throw new MissingMethodException(methodName, persistentClass, args)
         }
 
         def mc = persistentClass.getMetaClass()
-        if(CachedConfigParser.isRemote(persistentClass)) {
-            def queryDescriptorFirst = callingParser.parseFinder(persistentClass.getName(), methodName, args)
-            QueryExecutor.executeQuery(queryDescriptorFirst)
-        }
+        synchronize(methodName, args)
+
         mc.static."$methodName" = { Object[] varArgs ->
             def argumentsForMethod = varArgs?.length == 1 && varArgs[0].getClass().isArray() ? varArgs[0] : varArgs
-            if(CachedConfigParser.isRemote(persistentClass)) {
-                def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), methodName, argumentsForMethod)
-                QueryExecutor.executeQuery(queryDescriptor)
-            }
+            synchronize(methodName, argumentsForMethod)
             method.invoke(delegate, methodName, argumentsForMethod)
         }
 
         return method.invoke(persistentClass, methodName, args)
 	}
+
+    boolean synchronize(methodName, args)   {
+        if(CachedConfigParser.isRemote(persistentClass)) {
+            def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), methodName, args)
+            return QueryExecutor.executeQuery(queryDescriptor)
+        }
+        true
+    }
 }

@@ -6,5 +6,6 @@ class SynchLog {
     boolean isFinished
 
     static constraints = {
+        lastResponseHash nullable: true
     }
 }
