@@ -16,7 +16,7 @@ class QueryExecutor {
             def remoteQuery = CachedConfigParser.getQueryBuilder(desc).generateQuery(desc)
             def connector = CachedConfigParser.getDataSourceConnector(desc)
             List<JSONObject> responses = connector.read(remoteQuery)
-            processResponses(responses, desc)
+            return processResponses(responses, desc)
         }
         return true
     }
@@ -35,12 +35,12 @@ class QueryExecutor {
                 return connector.doAction(remoteQuery)
             }
             List<JSONObject> responses = connector.write(remoteQuery, remoteQuery.dataJson)
-            processResponses(responses, desc)
+            return processResponses(responses, desc)
         }
         return true
     }
 
-    static private processResponses(List<JSONObject> responses, QueryDescriptor desc)   {
+     private static boolean processResponses(List<JSONObject> responses, QueryDescriptor desc)   {
         def mapping = CachedConfigParser.getAttributeMap(desc)
         ResponseFilter filter = new ResponseFilter()
         responses.each { response ->
@@ -54,6 +54,8 @@ class QueryExecutor {
                 instanceTemp.save()
             }
         }
+
+        return true
     }
 
 }
