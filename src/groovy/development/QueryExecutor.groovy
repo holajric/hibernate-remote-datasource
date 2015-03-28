@@ -22,6 +22,7 @@ class QueryExecutor {
     }
 
     static boolean executeInstanceQuery(QueryDescriptor desc, Object instance)   {
+        println "instance"
         if(CachedConfigParser.isOperationAllowed(desc)) {
             def remoteQuery = CachedConfigParser.getQueryBuilder(desc).generateQuery(desc)
             remoteQuery.dataJson = [:]
@@ -31,10 +32,12 @@ class QueryExecutor {
                 }
             }
             def connector = CachedConfigParser.getDataSourceConnector(desc)
+            println remoteQuery.dataJson
             if(desc.operation == Operation.DELETE)  {
                 return connector.doAction(remoteQuery)
             }
-            List<JSONObject> responses = connector.write(remoteQuery, remoteQuery.dataJson)
+            List<JSONObject> responses = connector.write(remoteQuery)
+            println responses
             return processResponses(responses, desc)
         }
         return true

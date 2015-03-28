@@ -20,8 +20,9 @@ class Test {
             "paramMapping": [
                     "max": "limit"
             ],
+            "supportedParams": ["max"],
             "local": ["test","number"],
-            "allowed": [ Operation.READ, Operation.CREATE ],
+            "allowed": [ Operation.READ, Operation.CREATE, Operation.UPDATE, Operation.DELETE ],
             "operations":[
                     (Operation.READ):[
                         "endpoint": "remoteTest/show/[:id]",
@@ -30,6 +31,14 @@ class Test {
                     ],
                     (Operation.CREATE):[
                             "endpoint": "remoteTest/save",
+                            "method": "POST"
+                    ],
+                    (Operation.UPDATE):[
+                            "endpoint": "remoteTest/update",
+                            "method": "POST"
+                    ],
+                    (Operation.DELETE):[
+                            "endpoint": "remoteTest/delete",
                             "method": "POST"
                     ]
             ]

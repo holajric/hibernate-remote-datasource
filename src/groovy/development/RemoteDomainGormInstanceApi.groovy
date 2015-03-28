@@ -21,23 +21,24 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     }
 
     public D save(D instance) {
-        boolean isNew = (instance?.id != null)
+        println "save"
+        boolean isNew = (instance?.id == null)
         D savedInstance = super.save(instance)
-        synchronize(!isNew ? "update" : "save", instance)
+        synchronize(isNew ? "save" : "update", instance)
         savedInstance
     }
 
     public D save(D instance, boolean validate) {
-        boolean isNew = (instance?.id != null)
+        boolean isNew = (instance?.id == null)
         D savedInstance = super.save(instance, validate)
-        synchronize(!isNew ? "update" : "save", instance)
+        synchronize(isNew ? "save" : "update", instance)
         savedInstance
     }
 
     public D save(D instance, java.util.Map params) {
-        boolean isNew = (instance?.id != null)
+        boolean isNew = (instance?.id == null)
         D savedInstance = super.save(instance, params)
-        synchronize(!isNew ? "update" : "save", instance)
+        synchronize(isNew ? "save" : "update", instance)
         savedInstance
     }
 
@@ -52,9 +53,11 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     }
 
     private boolean synchronize(operation, instance)    {
+        println "syncing"
         if(CachedConfigParser.isRemote(instance.class)) {
             if(JournalLog.findByEntityAndInstanceIdAndIsFinished(instance.class.name, instance?.id, false)) {
                 //some sync/lock exception/message
+                println "locked"
                 return
             }
             def operationLoc
@@ -69,11 +72,14 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
                     operationLoc = Operation.UPDATE
                     break
             }
+            println "locking"
             def log = new JournalLog(entity: instance.class.name, instanceId: instance?.id, operation: operationLoc, isFinished: false)
             log.save()
             def queryDescriptor = callingParserService.parseInstanceMethod(operation, instance)
+            println queryDescriptor
             def result = queryExecutor.executeInstanceQuery(queryDescriptor, instance)
             log.isFinished = true
+            println "unlocking"
             log.save()
             return result
         }

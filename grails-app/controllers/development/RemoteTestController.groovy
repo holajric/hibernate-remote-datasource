@@ -18,8 +18,7 @@ class RemoteTestController {
         render RemoteTest.list(params) as JSON
     }
 
-    def show(Long id) {
-        def remoteTest = RemoteTest.findById(id)
+    def show(RemoteTest remoteTest) {
         if (remoteTest == null) {
             render status: NOT_FOUND
             return
@@ -64,7 +63,6 @@ class RemoteTestController {
 
     @Transactional
     def delete(RemoteTest remoteTest) {
-
         if (remoteTest == null) {
             render status: NOT_FOUND
             return

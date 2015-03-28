@@ -89,6 +89,7 @@ class GormApiParser implements CallingParser {
     }
 
     QueryDescriptor parseInstanceMethod(String operation, instance) {
+        println "parsing"
         def queryDesc = new QueryDescriptor(entityName: instance.class.getName())
         switch(operation)   {
             case "save":
