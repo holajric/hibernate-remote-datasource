@@ -22,11 +22,13 @@ class QueryExecutor {
     }
 
     static boolean executeInstanceQuery(QueryDescriptor desc, Object instance)   {
-        println "instance"
+        println "instance: ${instance.name}"
         if(CachedConfigParser.isOperationAllowed(desc)) {
+            def mapping = CachedConfigParser.getAttributeMap(desc)
             def remoteQuery = CachedConfigParser.getQueryBuilder(desc).generateQuery(desc)
             remoteQuery.dataJson = [:]
-            CachedConfigParser.attributeMapping[desc.entityName].each {
+            mapping.each {
+                println "${it.key}: ${it.value}"
                 if(instance."$it.key") {
                     remoteQuery.dataJson."$it.value" =  instance."$it.key"
                 }
@@ -48,7 +50,11 @@ class QueryExecutor {
         ResponseFilter filter = new ResponseFilter()
         responses.each { response ->
             if (filter.isValid(response, desc)) {
-                def instanceTemp = Class.forName(desc.entityName).get(response[mapping["id"]]) ?: Class.forName(desc.entityName).newInstance()
+                println desc.entityName
+                println Class.forName(desc.entityName)
+                println response
+                println mapping
+                def instanceTemp = Class.forName(desc.entityName).invokeMethod("get",response[mapping["id"]]) ?: Class.forName(desc.entityName).newInstance()
                 mapping.each {
                     if (response["$it.value"]) {
                         instanceTemp."$it.key" = response["$it.value"]

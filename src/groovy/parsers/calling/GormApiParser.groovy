@@ -14,7 +14,7 @@ import java.beans.Introspector
  */
 class GormApiParser implements CallingParser {
 
-    static simpleConditions = [
+    static conditions = [
         "InList",
         "LessThan",
         "LessThanEquals",
@@ -24,7 +24,10 @@ class GormApiParser implements CallingParser {
         "Ilike",
         "NotEqual",
         "InRange",
-        "Rlike"
+        "Rlike",
+        "Between",
+        "IsNotNull",
+        "IsNull"
     ]
 
     QueryDescriptor parseFinder(String clazz, String finder, params)   {
@@ -52,24 +55,21 @@ class GormApiParser implements CallingParser {
         if(query) {
             subqueries.each { subquery ->
                 subquery = Introspector.decapitalize(subquery)
-                if (subquery.contains("Between")) {
-                    subquery = subquery.replace("Between", "")
-                    queryDesc.conditions.add(new IntervalCondition(attribute: subquery, comparator: Operator.BETWEEN, lowerBound: params[counter], upperBound: params[counter + 1]))
-                    counter += 2
-                } else if (subquery.contains("IsNotNull")) {
-                    subquery = subquery.replace("IsNotNull", "")
-                    queryDesc.conditions.add(new Condition(attribute: subquery, comparator: Operator.IS_NOT_NULL))
-                } else if (subquery.contains("IsNull")) {
-                    subquery = subquery.replace("IsNull", "")
-                    queryDesc.conditions.add(new Condition(attribute: subquery, comparator: Operator.IS_NULL))
-                } else {
-                    Operator operator = Operator.EQUALS
-                    simpleConditions.eachWithIndex { simpleCondition, i ->
-                        if (subquery.contains(simpleCondition)) {
-                            subquery = subquery.replace(simpleCondition, "")
-                            operator = Operator.values()[i]
-                        }
+                Operator operator = Operator.EQUALS
+                conditions.eachWithIndex { condition, i ->
+                    if (subquery.contains(condition)) {
+                        subquery = subquery.replace(condition, "")
+                        operator = Operator.values()[i]
                     }
+                }
+                if (operator == Operator.BETWEEN) {
+                    queryDesc.conditions.add(new IntervalCondition(attribute: subquery, comparator: operator, lowerBound: params[counter], upperBound: params[counter + 1]))
+                    counter += 2
+                } else if(operator == Operator.IS_NOT_NULL) {
+                    queryDesc.conditions.add(new Condition(attribute: subquery, comparator: operator))
+                } else if (operator == Operator.IS_NULL) {
+                    queryDesc.conditions.add(new Condition(attribute: subquery, comparator: operator))
+                } else {
                     queryDesc.conditions.add(new SimpleCondition(attribute: subquery, comparator: operator, value: params[counter]))
                     counter++
                 }
@@ -89,20 +89,10 @@ class GormApiParser implements CallingParser {
     }
 
     QueryDescriptor parseInstanceMethod(String operation, instance) {
-        println "parsing"
         def queryDesc = new QueryDescriptor(entityName: instance.class.getName())
-        switch(operation)   {
-            case "save":
-                queryDesc.operation = Operation.CREATE
-                break;
-            case "update":
-                queryDesc.operation = Operation.UPDATE
-                queryDesc.conditions.add(new SimpleCondition(attribute: "id", comparator: Operator.EQUALS, value: instance.id ))
-                break;
-            case "delete":
-                queryDesc.operation = Operation.DELETE
-                queryDesc.conditions.add(new SimpleCondition(attribute: "id", comparator: Operator.EQUALS, value: instance.id ))
-                break;
+        queryDesc.operation = Operation."${operation.toUpperCase()}"
+        if(operation == "update" || operation == "delete")   {
+            queryDesc.conditions.add(new SimpleCondition(attribute: "id", comparator: Operator.EQUALS, value: instance.id ))
         }
 
         queryDesc

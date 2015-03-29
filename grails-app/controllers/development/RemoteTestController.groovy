@@ -14,7 +14,7 @@ class RemoteTestController {
 
     def index(Integer max) {
         params.max = Math.min(max ?: 10, 100)
-        //respond RemoteTest.list(params), [status: OK]
+        response.status = 200
         render RemoteTest.list(params) as JSON
     }
 
@@ -23,7 +23,7 @@ class RemoteTestController {
             render status: NOT_FOUND
             return
         }
-        //respond remoteTest, [status: OK]
+        response.status = 200
         render remoteTest as JSON
     }
 
@@ -41,7 +41,8 @@ class RemoteTestController {
         }
 
         remoteTest.save flush:true
-        respond remoteTest, [status: CREATED]
+        response.status = 201
+        render remoteTest as JSON
     }
 
     @Transactional
@@ -58,7 +59,8 @@ class RemoteTestController {
         }
 
         remoteTest.save flush:true
-        respond remoteTest, [status: OK]
+        response.status = 200
+        render remoteTest as JSON
     }
 
     @Transactional

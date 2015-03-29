@@ -23,12 +23,14 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
 
     @Override
     public D get(Serializable id)   {
-        if(JournalLog.findByEntityAndInstanceIdAndIsFinished(persistentClass.getName(), id, false)) {
+        println JournalLog.list()*.isFinished
+        if(JournalLog.countByEntityAndInstanceIdAndIsFinished(persistentClass.getName(), id, false) > 0) {
             //some sync/lock exception/message
             return super.get(id)
         }
-        def log = new JournalLog(entity: persistentClass.getName() ,instanceId: id, operation: Operation.READ, isFinished: false).save()
-        println synchronize("findById", [id])
+        def log = new JournalLog(entity: persistentClass.getName() ,instanceId: id, operation: Operation.READ, isFinished: false)
+        log.save()
+        synchronize("findById", [id])
         log.isFinished = true
         log.save()
         super.get(id)

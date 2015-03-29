@@ -21,58 +21,42 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     }
 
     public D save(D instance) {
-        println "save"
         boolean isNew = (instance?.id == null)
-        D savedInstance = super.save(instance)
-        synchronize(isNew ? "save" : "update", instance)
-        savedInstance
+        synchronize(isNew ? "create" : "update", instance)
+        super.save(instance)
     }
 
     public D save(D instance, boolean validate) {
         boolean isNew = (instance?.id == null)
-        D savedInstance = super.save(instance, validate)
-        synchronize(isNew ? "save" : "update", instance)
-        savedInstance
+        synchronize(isNew ? "create" : "update", instance)
+        super.save(instance, validate)
     }
 
     public D save(D instance, java.util.Map params) {
         boolean isNew = (instance?.id == null)
-        D savedInstance = super.save(instance, params)
-        synchronize(isNew ? "save" : "update", instance)
-        savedInstance
+        synchronize(isNew ? "create" : "update", instance)
+        super.save(instance, params)
     }
 
     public void delete(D instance) {
-        super.delete(instance)
         synchronize("delete", instance)
+        super.delete(instance)
     }
 
     public void delete(D instance, java.util.Map params) {
-        super.delete(instance, params)
         synchronize("delete", instance)
+        super.delete(instance, params)
     }
 
-    private boolean synchronize(operation, instance)    {
-        println "syncing"
+    private boolean synchronize(String operation, D instance)    {
+        println JournalLog.list()*.isFinished
         if(CachedConfigParser.isRemote(instance.class)) {
             if(JournalLog.findByEntityAndInstanceIdAndIsFinished(instance.class.name, instance?.id, false)) {
                 //some sync/lock exception/message
                 println "locked"
                 return
             }
-            def operationLoc
-            switch(operation)   {
-                case "delete":
-                    operationLoc = Operation.DELETE
-                    break
-                case "save":
-                    operationLoc = Operation.CREATE
-                    break
-                case "update":
-                    operationLoc = Operation.UPDATE
-                    break
-            }
-            println "locking"
+            def operationLoc = Operation."${operation.toUpperCase()}"
             def log = new JournalLog(entity: instance.class.name, instanceId: instance?.id, operation: operationLoc, isFinished: false)
             log.save()
             def queryDescriptor = callingParserService.parseInstanceMethod(operation, instance)

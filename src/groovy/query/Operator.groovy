@@ -14,8 +14,8 @@ public enum Operator {
     NOT_EQUAL,
     IN_RANGE,
     RLIKE,
-    EQUALS,
     BETWEEN,
     IS_NOT_NULL,
-    IS_NULL
+    IS_NULL,
+    EQUALS
 }

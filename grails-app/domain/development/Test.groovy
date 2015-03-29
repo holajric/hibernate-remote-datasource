@@ -34,12 +34,12 @@ class Test {
                             "method": "POST"
                     ],
                     (Operation.UPDATE):[
-                            "endpoint": "remoteTest/update",
-                            "method": "POST"
+                            "endpoint": "remoteTest/update/[:id]",
+                            "method": "PUT"
                     ],
                     (Operation.DELETE):[
-                            "endpoint": "remoteTest/delete",
-                            "method": "POST"
+                            "endpoint": "remoteTest/delete/[:id]",
+                            "method": "DELETE"
                     ]
             ]
     ]
