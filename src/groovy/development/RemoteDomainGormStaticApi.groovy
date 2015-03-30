@@ -23,28 +23,33 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
 
     @Override
     public D get(Serializable id)   {
-        println JournalLog.list()*.isFinished
-        if(JournalLog.countByEntityAndInstanceIdAndIsFinished(persistentClass.getName(), id, false) > 0) {
-            //some sync/lock exception/message
-            return super.get(id)
+        if(CachedConfigParser.isRemote(persistentClass)) {
+            println "get"
+            println Thread.currentThread().getStackTrace()
+            if (JournalLog.countByEntityAndInstanceIdAndIsFinished(persistentClass.getName(), id, false) > 0) {
+                //some sync/lock exception/message
+                return super.get(id)
+            }
+            def log = new JournalLog(entity: persistentClass.getName(), instanceId: id, operation: Operation.READ, isFinished: false)
+            log.save()
+            synchronize("findById", [id])
+            log.isFinished = true
+            log.save()
         }
-        def log = new JournalLog(entity: persistentClass.getName() ,instanceId: id, operation: Operation.READ, isFinished: false)
-        log.save()
-        synchronize("findById", [id])
-        log.isFinished = true
-        log.save()
         super.get(id)
     }
 
     @Override
     List<D> list(Map params) {
-        synchronize("findAll", [])
+        if(CachedConfigParser.isRemote(persistentClass))
+            synchronize("findAll", [])
         super.list(params)
     }
 
     @Override
     List<D> list() {
-        synchronize("findAll", [])
+        if(CachedConfigParser.isRemote(persistentClass))
+            synchronize("findAll", [])
         super.list()
     }
 
@@ -58,11 +63,13 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
         }
 
         def mc = persistentClass.getMetaClass()
-        synchronize(methodName, args)
+        if(CachedConfigParser.isRemote(persistentClass))
+            synchronize(methodName, args)
 
         mc.static."$methodName" = { Object[] varArgs ->
             def argumentsForMethod = varArgs?.length == 1 && varArgs[0].getClass().isArray() ? varArgs[0] : varArgs
-            synchronize(methodName, argumentsForMethod)
+            if(CachedConfigParser.isRemote(persistentClass))
+                synchronize(methodName, argumentsForMethod)
             method.invoke(delegate, methodName, argumentsForMethod)
         }
 
@@ -70,10 +77,8 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
 	}
 
     boolean synchronize(methodName, args)   {
-        if(CachedConfigParser.isRemote(persistentClass)) {
-            def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), methodName, args)
-            return QueryExecutor.executeFinderQuery(queryDescriptor)
-        }
+        def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), methodName, args)
+        return QueryExecutor.executeFinderQuery(queryDescriptor)
         true
     }
 }

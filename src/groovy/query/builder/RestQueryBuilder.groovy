@@ -13,7 +13,6 @@ import query.Condition
  * Created by richard on 18.2.15.
  */
 class RestQueryBuilder implements QueryBuilder {
-
     RestRemoteQuery generateQuery(QueryDescriptor desc) {
         String tempUrl = CachedConfigParser.mapping[desc.entityName]["baseUrl"]
         def operation = CachedConfigParser.getQueryOperation(desc)
@@ -24,7 +23,7 @@ class RestQueryBuilder implements QueryBuilder {
         }   else    {
             tempUrl+= generateBatchQuery(desc, operation)
         }
-
+        println tempUrl
         return new RestRemoteQuery(method: operation["method"], url: tempUrl)
     }
 
@@ -49,7 +48,19 @@ class RestQueryBuilder implements QueryBuilder {
                 tempUrl += generateConditionQuery(condition, desc)
             }
         }
-        //TODO: param mapping
+        println desc.paginationSorting
+        desc.paginationSorting.each { param ->
+            if(!CachedConfigParser.mapping[desc.entityName]?."supportedParams" ||
+                CachedConfigParser.mapping[desc.entityName]?."supportedParams"?.contains(param.key))   {
+                println CachedConfigParser.mapping[desc.entityName]?."paramMapping"?."${param.key}"
+                println param.key
+                println param.value
+                tempUrl += first ? "?" : "&"
+                first = false
+                tempUrl+= ((CachedConfigParser.mapping[desc.entityName]?."paramMapping"?."${param.key}")?:param.key) + "=${param.value}"
+            }
+        }
+
         return tempUrl
     }
 

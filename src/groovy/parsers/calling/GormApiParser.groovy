@@ -83,7 +83,7 @@ class GormApiParser implements CallingParser {
         queryDesc.operation = Operation.READ
 
         if(operation == "find")
-                queryDesc.paginationSorting["limit"] = 1
+                queryDesc.paginationSorting["max"] = 1
 
         return queryDesc
     }

@@ -17,9 +17,9 @@ class Test {
             "queryMapping": [
                     "number BETWEEN": "from=:lowerBound&to=:upperBound"
             ],
-            "paramMapping": [
+            /*"paramMapping": [
                     "max": "limit"
-            ],
+            ],*/
             "supportedParams": ["max"],
             "local": ["test","number"],
             "allowed": [ Operation.READ, Operation.CREATE, Operation.UPDATE, Operation.DELETE ],
