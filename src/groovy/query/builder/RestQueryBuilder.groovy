@@ -23,14 +23,12 @@ class RestQueryBuilder implements QueryBuilder {
         }   else    {
             tempUrl+= generateBatchQuery(desc, operation)
         }
-        println tempUrl
         return new RestRemoteQuery(method: operation["method"], url: tempUrl)
     }
 
     boolean isSingleQuery(QueryDescriptor desc, String endpoint)  {
         return ((desc.conditionJoin == ConditionJoin.NONE) &&
                 (!desc.conditions.empty) &&
-                (!CachedConfigParser.mapping[desc.entityName]?."local"?.contains(desc.conditions[0].attribute)) &&
                 (desc.conditions[0].comparator == Operator.EQUALS) &&
                 (desc.conditions[0] instanceof SimpleCondition) &&
                 (endpoint.contains("[:${desc.conditions[0].attribute}]")))
@@ -78,7 +76,6 @@ class RestQueryBuilder implements QueryBuilder {
 
     boolean isConditionSupported(Condition condition, QueryDescriptor desc)  {
         return (
-        (!CachedConfigParser.mapping[desc.entityName]?."local"?.contains(condition.attribute)) ||
         (condition.comparator == Operator.EQUALS && condition instanceof SimpleCondition) ||
         (CachedConfigParser.mapping[desc.entityName]?."queryMapping"?."${condition.conditionString()}")
         )

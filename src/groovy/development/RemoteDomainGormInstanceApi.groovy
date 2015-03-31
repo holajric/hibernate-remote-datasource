@@ -1,7 +1,10 @@
 package development
 
+import groovy.transform.CompileStatic
+import groovy.transform.TypeCheckingMode
 import org.codehaus.groovy.grails.orm.hibernate.HibernateGormInstanceApi
 import org.codehaus.groovy.grails.orm.hibernate.HibernateDatastore
+import org.grails.datastore.gorm.finders.FinderMethod
 import parsers.calling.CallingParser
 import parsers.config.CachedConfigParser
 import query.Operation
@@ -17,15 +20,23 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
         super(persistentClass, datastore, classLoader)
         this.callingParserService = callingParserService
         this.queryExecutor = new QueryExecutor()
+        def mc = persistentClass.getMetaClass()
+        mc."directSave" = { args -> super.save(delegate, args) }
+        mc."directDelete" = { args -> super.delete(delegate, args) }
     }
 
-    public synchronized D save(D instance) {
+    public D save(D instance) {
+        def res
         if(CachedConfigParser.isRemote(instance.class)) {
             println "save"
             boolean isNew = (instance?.id == null)
-            synchronize(isNew ? "create" : "update", instance)
+            res = synchronize(isNew ? "create" : "update", instance)
+            println res
         }
-        super.save(instance)
+        println "BEFORE SUPER SAVE ${Class.forName(instance.class.name)?.count()}"
+        res = super.save(instance)
+        println "AFTER SUPER SAVE ${Class.forName(instance.class.name)?.count()}"
+        return res
     }
 
     public D save(D instance, boolean validate) {
@@ -60,12 +71,13 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
         super.delete(instance, params)
     }
 
-    private boolean synchronize(String operation, D instance)    {
+    private Object synchronize(String operation, D instance)    {
         def operationLoc = Operation."${operation.toUpperCase()}"
         def result = SynchronizationManager.withCheckedTransaction(instance, operationLoc)  {
             def queryDescriptor = callingParserService.parseInstanceMethod(operation, instance)
+            println queryDescriptor
             return queryExecutor.executeInstanceQuery(queryDescriptor, instance)
         }
-        return result
+        return null
     }
 }

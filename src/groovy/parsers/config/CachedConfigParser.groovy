@@ -48,10 +48,9 @@ class CachedConfigParser {
         if(!attributeMapping[desc.entityName]) {
             attributeMapping[desc.entityName] = [:]
             new DefaultGrailsDomainClass(Class.forName(desc.entityName)).properties.each { it ->
-                if(it.name != "version" && !mapping."local"?.contains(it.name))
+                if(it.name != "version" && !mapping?."$desc.entityName"?."local"?.contains(it.name))
                     attributeMapping?."$desc.entityName"?."${it.name}" = mapping?."$desc.entityName"?."mapping"?."${it.name}" ?: it.name
             }
-            println attributeMapping[desc.entityName]
         }
         attributeMapping[desc.entityName]
     }

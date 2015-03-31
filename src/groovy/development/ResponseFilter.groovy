@@ -11,9 +11,6 @@ import query.SimpleCondition
 class ResponseFilter {
     boolean isValid(instance, QueryDescriptor desc) {
         desc.conditions.each {
-            if(CachedConfigParser.mapping[desc.entityName]?."local"?.contains(it.attribute))
-                return false
-
                 def method = underscoreToCamelCase(it.comparator.toString())
                 if (it instanceof IntervalCondition) {
                     if (!this."$method"(instance."${it.attribute}", it.lowerBound, it.upperBound))
