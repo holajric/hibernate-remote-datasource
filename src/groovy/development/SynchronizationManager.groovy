@@ -13,12 +13,12 @@ class SynchronizationManager {
     }
 
     public static boolean withCheckedTransaction(instance, Operation operation, Closure action) {
-        return runCheckedTransaction(instance?.class.name, instance?.id?:0, operation, action, instance)
+        return runCheckedTransaction(instance?.class.name, instance?.id, operation, action, instance)
     }
 
     public static boolean runCheckedTransaction(String className, id, Operation operation, Closure action, instance = null)   {
-        if (JournalLog.countByEntityAndInstanceIdAndIsFinished(className, id, false) > 0) {
-            println "locked"
+        if (id && JournalLog.countByEntityAndInstanceIdAndIsFinished(className, id, false) > 0) {
+            //println "locked"
             return false
         }
         return instance ? withTransaction(instance, operation, action) : withTransaction(className, id, operation, action)
@@ -35,18 +35,18 @@ class SynchronizationManager {
     }
 
     private static boolean runTransaction(JournalLog log, action, instance = null) {
-        println "locking ${log.instanceId}"
+        //println "locking ${log.instanceId}"
         log.save(failOnError: true)
-        println "action start"
+        //println "action start"
         if (!action())
             return false
-        println "action over"
+        //println "action over"
         if(instance)
-            log.instanceId = instance?.id?:0
+            log.instanceId = instance?.id
         log.isFinished = true
         log.save(failOnError: true, flush: true)
-        println "unlocking ${log.instanceId}"
-        println "DeepInside: ${JournalLog.get(1)}"
+        //println "unlocking ${log.instanceId}"
+        //println "DeepInside: ${JournalLog.get(1)}"
         return true
     }
 

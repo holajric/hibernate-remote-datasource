@@ -27,20 +27,20 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
     @Override
     public D get(Serializable id)   {
         if(CachedConfigParser.isRemote(persistentClass)) {
-            println "start: ${JournalLog.findById(1)?.isFinished}"
-            println "get"
+            //println "start: ${JournalLog.findById(1)?.isFinished}"
+            //println "get"
             SynchronizationManager.withCheckedTransaction(persistentClass.getName(), id, Operation.READ) {
-                println "startysynch"
+                //println "startsynch"
                 synchronize("findById", [id])
-                println "inside: ${JournalLog.findById(1)?.isFinished}"
-                println "endsynch"
+                //println "inside: ${JournalLog.findById(1)?.isFinished}"
+                //println "endsynch"
                 return true
             }
-            println "pre-super ${persistentClass} ${Thread.currentThread().getStackTrace()}"
+            //println "pre-super ${persistentClass} ${Thread.currentThread().getStackTrace()}"
         }
 
         def res = super.get(id)
-        println "end: ${JournalLog.findById(1).isFinished}"
+        //println "end: ${JournalLog.findById(1).isFinished}"
         return res
     }
 
@@ -68,10 +68,10 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
                 def mc = persistentClass.getMetaClass()
                 mc.static."directGet" = { Object[] varArgs ->
                     def argumentsForMethod = varArgs?.length == 1 && varArgs[0].getClass().isArray() ? varArgs[0] : varArgs
-                    println "pre-direct-get"
+                    //println "pre-direct-get"
                     super.get(argumentsForMethod)
                 }
-                println "pre-direct-get"
+                //println "pre-direct-get"
                 return super.get(args)
             }
             throw new MissingMethodException(methodName, persistentClass, args)
@@ -93,10 +93,10 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
 
     boolean synchronize(methodName, args)   {
         def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), methodName, args)
-        println queryDescriptor
-        println "startExec"
+        //println queryDescriptor
+        //println "startExec"
         def res =  QueryExecutor.executeFinderQuery(queryDescriptor)
-        println "EndExec"
+        //println "EndExec"
         return res
     }
 }

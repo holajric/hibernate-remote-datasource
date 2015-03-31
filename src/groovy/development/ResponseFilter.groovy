@@ -13,15 +13,15 @@ class ResponseFilter {
         desc.conditions.each {
                 def method = underscoreToCamelCase(it.comparator.toString())
                 if (it instanceof IntervalCondition) {
-                    if (!this."$method"(instance."${it.attribute}", it.lowerBound, it.upperBound))
+                    if (!this."$method"(instance?."${it.attribute}", it.lowerBound, it.upperBound))
                         return false
                 }
                 else if (it instanceof SimpleCondition) {
-                    if (!this."$method"(instance."${it.attribute}", it.value))
+                    if (!this."$method"(instance?."${it.attribute}", it.value))
                         return false
                 }
                 else {
-                    if(!this."$method"(instance."${it.attribute}"))
+                    if(!this."$method"(instance?."${it.attribute}"))
                         return false
                 }
         }

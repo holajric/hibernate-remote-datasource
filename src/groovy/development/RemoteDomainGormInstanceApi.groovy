@@ -26,17 +26,25 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
 
     public D save(D instance) {
         if(CachedConfigParser.isRemote(instance.class)) {
-            println "save"
             boolean isNew = (instance?.id == null)
+            //println (isNew ? "create" : "update")
+            //println "startSync"
             synchronize(isNew ? "create" : "update", instance)
+            //println "endSync"
         }
-        super.save(instance)
+        //println "preparing super save"
+        def res = super.save(instance)
+        //println "ended super save ${res}"
+        return res
     }
 
     public D save(D instance, boolean validate) {
         if(CachedConfigParser.isRemote(instance.class)) {
             boolean isNew = (instance?.id == null)
+            //println (isNew ? "create" : "update")
+            //println "startSync"
             synchronize(isNew ? "create" : "update", instance)
+            //println "endSync"
         }
         super.save(instance, validate)
     }
@@ -44,23 +52,30 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     public D save(D instance, java.util.Map params) {
         if(CachedConfigParser.isRemote(instance.class)) {
             boolean isNew = (instance?.id == null)
+            //println (isNew ? "create" : "update")
+            //println "startSync"
             synchronize(isNew ? "create" : "update", instance)
+            //println "endSync"
         }
         super.save(instance, params)
     }
 
     public void delete(D instance) {
         if(CachedConfigParser.isRemote(instance.class)) {
-            println "delete"
+            //println "delete"
+            //println "startSync"
             synchronize("delete", instance)
+            //println "endSync"
         }
         super.delete(instance)
     }
 
     public void delete(D instance, java.util.Map params) {
         if(CachedConfigParser.isRemote(instance.class)) {
-            println "delete"
+            //println "delete"
+            //println "startSync"
             synchronize("delete", instance)
+            //println "endSync"
         }
         super.delete(instance, params)
     }
@@ -69,8 +84,10 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
         def operationLoc = Operation."${operation.toUpperCase()}"
         def result = SynchronizationManager.withCheckedTransaction(instance, operationLoc)  {
             def queryDescriptor = callingParserService.parseInstanceMethod(operation, instance)
-            println queryDescriptor
+            //println queryDescriptor
+            //println "startEx"
             return queryExecutor.executeInstanceQuery(queryDescriptor, instance)
+            //println "endEx"
         }
         return result
     }

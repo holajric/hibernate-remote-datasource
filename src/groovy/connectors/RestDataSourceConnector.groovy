@@ -19,11 +19,11 @@ class RestDataSourceConnector implements DataSourceConnector {
 
     List<JSONObject> read(RemoteQuery query)  {
         String methodName = query.method.toLowerCase()
-        println "transferStart"
+        //println "transferStart"
         def response = rest."$methodName"(query.url)
-        println "transferEnd sanitizeStart"
+        //println "transferEnd sanitizeStart"
         def res = sanitizeResponse(response)
-        println "sanitizeEnd"
+        //println "sanitizeEnd"
         return res
     }
 
