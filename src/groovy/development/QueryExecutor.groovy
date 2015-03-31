@@ -29,7 +29,7 @@ class QueryExecutor {
         return true
     }
 
-    static Object executeInstanceQuery(QueryDescriptor desc, Object instance)   {
+    static boolean executeInstanceQuery(QueryDescriptor desc, Object instance)   {
         if(CachedConfigParser.isOperationAllowed(desc)) {
             def mapping = CachedConfigParser.getAttributeMap(desc)
             def remoteQuery = CachedConfigParser.getQueryBuilder(desc).generateQuery(desc)
@@ -45,11 +45,9 @@ class QueryExecutor {
                 return connector.doAction(remoteQuery)
             }
             List<JSONObject> responses = connector.write(remoteQuery)
-            println "BEFORE PROCES ${Class.forName(desc.entityName)?.count()}"
-            processResponses(responses, desc, instance)
-            return instance
+            return processResponses(responses, desc, instance)
         }
-        return null
+        return true
     }
 
      private static boolean processResponses(List<JSONObject> responses, QueryDescriptor desc, instance = null)   {
@@ -57,29 +55,26 @@ class QueryExecutor {
         ResponseFilter filter = new ResponseFilter()
         responses.each { response ->
             if (filter.isValid(response, desc)) {
-                if(instance != null)
-                    instance.directDelete()
                 println response
                 def instanceTemp = Class.forName(desc.entityName)?.directGet(response[mapping["id"]]) ?: Class.forName(desc.entityName).newInstance()
                 println instanceTemp
                 if(!JournalLog.countByEntityAndInstanceIdAndIsFinished(desc.entityName, response[mapping["id"]], false)) {
                     SynchronizationManager.withTransaction(instanceTemp.class.name, response[mapping["id"]], desc.operation) {
                         println "transInStart"
-                        instance = buildInstance(mapping, response, instanceTemp)
+                        buildInstance(mapping, response, instanceTemp)
                         println "transInEnd"
                         return true
                     }
                 }   else    {
-                    instance = buildInstance(mapping, response, instanceTemp)
+                    buildInstance(mapping, response, instanceTemp)
                 }
             }
         }
-         println "AFTER BUILD INSTANCE ${Class.forName(desc.entityName)?.count()}"
 
         return true
     }
 
-    private static Object buildInstance(mapping, response, instanceTemp) {
+    private static boolean buildInstance(mapping, response, instanceTemp) {
         mapping.each {
             if (response["${it.value}"]) {
                 instanceTemp."${it.key}" = response["${it.value}"]
@@ -89,7 +84,6 @@ class QueryExecutor {
         instanceTemp.directSave()
         println "dirSaveEnd"
         println instanceTemp
-        return instanceTemp
     }
 
 }

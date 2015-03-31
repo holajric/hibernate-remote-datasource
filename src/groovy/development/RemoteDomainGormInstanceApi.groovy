@@ -22,21 +22,15 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
         this.queryExecutor = new QueryExecutor()
         def mc = persistentClass.getMetaClass()
         mc."directSave" = { args -> super.save(delegate, args) }
-        mc."directDelete" = { args -> super.delete(delegate, args) }
     }
 
     public D save(D instance) {
-        def res
         if(CachedConfigParser.isRemote(instance.class)) {
             println "save"
             boolean isNew = (instance?.id == null)
-            res = synchronize(isNew ? "create" : "update", instance)
-            println res
+            synchronize(isNew ? "create" : "update", instance)
         }
-        println "BEFORE SUPER SAVE ${Class.forName(instance.class.name)?.count()}"
-        res = super.save(instance)
-        println "AFTER SUPER SAVE ${Class.forName(instance.class.name)?.count()}"
-        return res
+        super.save(instance)
     }
 
     public D save(D instance, boolean validate) {
@@ -71,13 +65,13 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
         super.delete(instance, params)
     }
 
-    private Object synchronize(String operation, D instance)    {
+    private boolean synchronize(String operation, D instance)    {
         def operationLoc = Operation."${operation.toUpperCase()}"
         def result = SynchronizationManager.withCheckedTransaction(instance, operationLoc)  {
             def queryDescriptor = callingParserService.parseInstanceMethod(operation, instance)
             println queryDescriptor
             return queryExecutor.executeInstanceQuery(queryDescriptor, instance)
         }
-        return null
+        return result
     }
 }
