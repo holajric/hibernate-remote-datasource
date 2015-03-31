@@ -6,6 +6,7 @@ import org.codehaus.groovy.grails.web.json.JSONObject
 import parsers.config.CachedConfigParser
 import query.QueryDescriptor
 import query.Operation
+import synchronisation.JournalLog
 
 
 @Transactional
@@ -47,14 +48,16 @@ class QueryExecutor {
         ResponseFilter filter = new ResponseFilter()
         responses.each { response ->
             if (filter.isValid(response, desc)) {
-                def instanceTemp = instance ?: Class.forName(desc.entityName).newInstance()
-                mapping.each {
-                    if (response["$it.value"]) {
-                        instanceTemp."$it.key" = response["$it.value"]
+                def instanceTemp = Class.forName(desc.entityName)?.get(response[mapping["id"]]) ?: Class.forName(desc.entityName).newInstance()
+                SynchronizationManager.withTransaction(instanceTemp.class.name, response[mapping["id"]], desc.operation)    {
+                    mapping.each {
+                        if (response["${it.value}"]) {
+                            instanceTemp."${it.key}" = response["${it.value}"]
+                        }
                     }
+                    if(!instance)
+                        instanceTemp.save(failOnError: true)
                 }
-                if(!instance)
-                    instanceTemp.save()
             }
         }
 

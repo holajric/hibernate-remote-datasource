@@ -33,7 +33,6 @@ class RestDataSourceConnector implements DataSourceConnector {
     }
 
     private List<JSONObject> sanitizeResponse(response) {
-        //println response.getStatus()
         if(!(response instanceof RestResponse))    {
             return []
         }

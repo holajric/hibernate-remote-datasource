@@ -3,13 +3,15 @@ package development
 class TestController {
 
     def index() {
-        println Test.list()
-        def t = /*Test.findByName("AHOJ")?:*/new Test(name:"a",number: 10, test:"nope")
+        RemoteTest.get(1)?: new RemoteTest(otherName: "TEST").save()
+        println Test.list()*.name
+        def t = Test.get(2)?: new Test(name:"a",number: 10, test:"nope")
         t.save()
+        println Test.list()*.name
         t.name = "AHOJ"
         t.save()
-        //Test.findAll()*.name
+        println Test.list()*.name
         t.delete()
-        /*println Test.findAll()*.name*/
+        println Test.list()*.name
     }
 }

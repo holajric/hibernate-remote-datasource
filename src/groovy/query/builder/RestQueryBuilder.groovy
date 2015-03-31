@@ -48,13 +48,10 @@ class RestQueryBuilder implements QueryBuilder {
                 tempUrl += generateConditionQuery(condition, desc)
             }
         }
-        println desc.paginationSorting
+
         desc.paginationSorting.each { param ->
             if(!CachedConfigParser.mapping[desc.entityName]?."supportedParams" ||
                 CachedConfigParser.mapping[desc.entityName]?."supportedParams"?.contains(param.key))   {
-                println CachedConfigParser.mapping[desc.entityName]?."paramMapping"?."${param.key}"
-                println param.key
-                println param.value
                 tempUrl += first ? "?" : "&"
                 first = false
                 tempUrl+= ((CachedConfigParser.mapping[desc.entityName]?."paramMapping"?."${param.key}")?:param.key) + "=${param.value}"

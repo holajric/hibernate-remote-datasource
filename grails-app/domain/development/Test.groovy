@@ -45,5 +45,7 @@ class Test {
     ]
 
     static constraints = {
+        test nullable: true
+        number nullable: true
     };
 };
