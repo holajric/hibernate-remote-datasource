@@ -22,24 +22,40 @@ class Test {
             ],*/
             "supportedParams": ["max"],
             "local": ["test","number"],
+            //"authetication": "Token",
+            "authenticationParams": [
+                "token": "asdasa4a5sd45qcyx5a4sd5"
+            ],
             "allowed": [ Operation.READ, Operation.CREATE, Operation.UPDATE, Operation.DELETE ],
             "operations":[
                     (Operation.READ):[
                         "endpoint": "remoteTest/show/[:id]",
                         "queryEndpoint": "remoteTest",
-                        "method": "GET"
+                        "method": "GET",
+                        "authenticationParams": [
+                                "token": "readToken"
+                        ]
                     ],
                     (Operation.CREATE):[
                             "endpoint": "remoteTest/save",
-                            "method": "POST"
+                            "method": "POST",
+                            "authenticationParams": [
+                                    "token": "createToken"
+                            ]
                     ],
                     (Operation.UPDATE):[
                             "endpoint": "remoteTest/update/[:id]",
-                            "method": "PUT"
+                            "method": "PUT",
+                            "authenticationParams": [
+                                    "token": "updateToken"
+                            ]
                     ],
                     (Operation.DELETE):[
                             "endpoint": "remoteTest/delete/[:id]",
-                            "method": "DELETE"
+                            "method": "DELETE",
+                            "authenticationParams": [
+                                    "token": "deleteToken"
+                            ]
                     ]
             ]
     ]

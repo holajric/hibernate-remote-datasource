@@ -18,7 +18,7 @@ class QueryExecutor {
             //println remoteQuery
             def connector = CachedConfigParser.getDataSourceConnector(desc)
             //println connector.toString()+" readStart"
-            List<JSONObject> responses = connector.read(remoteQuery)
+            List<JSONObject> responses = connector.read(remoteQuery, CachedConfigParser.getAuthenticator(desc))
             //println "readEnd"
             //println responses
             //println "startProc"
@@ -47,11 +47,11 @@ class QueryExecutor {
             def connector = CachedConfigParser.getDataSourceConnector(desc)
             if(desc.operation == Operation.DELETE)  {
                 //println "DELETE - DO ACTION"
-                return connector.doAction(remoteQuery)
+                return connector.doAction(remoteQuery, CachedConfigParser.getAuthenticator(desc))
                 //println "DELETE - END ACTION"
             }
             //println "SENDING DATA..."
-            List<JSONObject> responses = connector.write(remoteQuery)
+            List<JSONObject> responses = connector.write(remoteQuery, CachedConfigParser.getAuthenticator(desc))
             //println "DATA SEND, RESPONSE: ${responses}"
             //println "PROCESSING"
             return processResponses(responses, desc, instance)

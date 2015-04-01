@@ -5,34 +5,44 @@ import grails.plugins.rest.client.RestResponse
 import org.codehaus.groovy.grails.web.json.JSONArray
 import org.codehaus.groovy.grails.web.json.JSONObject
 import query.builder.*
+import auth.Authenticator
 /**
  * Created by richard on 18.2.15.
  */
 class RestDataSourceConnector implements DataSourceConnector {
     def rest = new RestBuilder()
 
-    boolean doAction(RemoteQuery query)  {
+    boolean doAction(RemoteQuery query, auth.Authenticator auth = null)  {
+        if(auth && !auth?.authenticate(query))
+            return []
+        def requestBody = auth?.getAuthenticatedBody(query) ?: {}
         String methodName = query.method.toLowerCase()
-        def response = rest."$methodName"(query.url)
+        def response = rest."$methodName"(query.url, requestBody)
         return (response instanceof RestResponse)
     }
 
-    List<JSONObject> read(RemoteQuery query)  {
+    List<JSONObject> read(RemoteQuery query, auth.Authenticator auth = null)  {
+        if(auth && !auth?.authenticate(query))
+            return []
+        def requestBody = auth?.getAuthenticatedBody(query) ?: {}
         String methodName = query.method.toLowerCase()
         //println "transferStart"
-        def response = rest."$methodName"(query.url)
+        def response = rest."$methodName"(query.url, requestBody)
         //println "transferEnd sanitizeStart"
         def res = sanitizeResponse(response)
         //println "sanitizeEnd"
         return res
     }
 
-    List<JSONObject> write(RemoteQuery query)   {
+    List<JSONObject> write(RemoteQuery query, Authenticator auth = null)   {
         String methodName = query.method.toLowerCase()
-        def response = rest."$methodName"(query.url) {
+        if(auth && !auth?.authenticate(query))
+            return []
+        def requestBody = auth?.getAuthenticatedBody(query) ?: {
             json query.dataJson.toString()
             contentType "application/json"
         }
+        def response = rest."$methodName"(query.url, requestBody)
         return sanitizeResponse(response)
     }
 

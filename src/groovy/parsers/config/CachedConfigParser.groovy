@@ -3,16 +3,20 @@ package parsers.config
 import connectors.DataSourceConnector
 import grails.transaction.Transactional
 import org.codehaus.groovy.grails.commons.GrailsClassUtils
+import query.Operation
 import query.QueryDescriptor
 import query.builder.QueryBuilder
 import org.codehaus.groovy.grails.commons.DefaultGrailsDomainClass
+import auth.Authenticator
 
 @Transactional
 class CachedConfigParser {
     static Map<String, DataSourceConnector> dataSourceConnector = new HashMap<String, DataSourceConnector>()
     static Map<String, QueryBuilder> queryBuilder = new HashMap<String, QueryBuilder>()
+    static Map<String, Authenticator> authenticator = new HashMap<String, Authenticator>()
     static Map<String, Object> mapping  = new HashMap<String, Object>()
-    static Map<String, Object> attributeMapping  = new HashMap<String, Map<String, String>>()
+    static Map<String, Map<String, String>> attributeMapping  = new HashMap<String, Map<String, String>>()
+    static Map<String, Map<String, Object>> authenticationParams  = new HashMap<String, Map<String, Object>>()
 
     static boolean isRemote(Class entity)  {
         if(!mapping[entity.getName()])
@@ -34,6 +38,31 @@ class CachedConfigParser {
         if(!queryBuilder[desc.entityName])
             queryBuilder[desc.entityName] = Class.forName("query.builder."+mapping[desc.entityName]["sourceType"]+"QueryBuilder")?.newInstance()
         queryBuilder[desc.entityName]
+    }
+
+    static Authenticator getAuthenticator(QueryDescriptor desc) {
+        if(!isRemote(Class.forName(desc.entityName)))
+            return null
+        if(!authenticator["${desc.entityName} ${desc.operation}}"])  {
+            String name = (mapping?."$desc.entityName"?."operations"?.getAt(desc.operation)?."authentication"
+                          ?: mapping[desc.entityName]["authentication"]
+                          ?: "Token")
+            authenticator["${desc.entityName} ${desc.operation}}"] = Class.forName("auth.${name}Authenticator")?.newInstance(desc.entityName, desc.operation)
+        }
+
+        return authenticator["${desc.entityName} ${desc.operation}}"]
+    }
+
+    static Map<String, Object> getAuthenticationParams(String entity, Operation operation) {
+        if(!isRemote(Class.forName(entity)))
+            return null
+        if(!authenticationParams["${entity} ${operation}}"])  {
+            authenticationParams["${entity} ${operation}}"] = (mapping?."$entity"?."operations"?.getAt(operation)?."authenticationParams"
+                    ?: mapping[entity]["authenticationParams"]
+                    ?: [:])
+        }
+
+        return authenticationParams["${entity} ${operation}}"]
     }
 
     static boolean isOperationAllowed(QueryDescriptor desc) {
