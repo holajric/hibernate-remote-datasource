@@ -1,5 +1,6 @@
 import development.RemoteDomainGormEnhancer
-
+import grails.util.Environment
+import org.codehaus.groovy.grails.commons.GrailsApplication
 import org.grails.datastore.mapping.transactions.DatastoreTransactionManager
 import org.codehaus.groovy.grails.orm.hibernate.HibernateDatastore
 import parsers.calling.GormApiParser
@@ -50,6 +51,18 @@ Brief summary/description of the plugin.
 
     def doWithSpring = {
         // TODO Implement runtime spring config (optional)
+        mergeConfig(application)
+    }
+
+    private void mergeConfig(GrailsApplication app) {
+        ConfigObject currentConfig = app.config
+        ConfigSlurper slurper = new ConfigSlurper(Environment.getCurrent().getName());
+        ConfigObject secondaryConfig = slurper.parse(app.classLoader.loadClass("HibernateRemoteDatasourceDefaultConfig"))
+
+        ConfigObject config = new ConfigObject();
+        config.putAll(secondaryConfig.merge(currentConfig))
+
+        app.config = config;
     }
 
     def doWithDynamicMethods = { ctx ->
@@ -71,8 +84,7 @@ Brief summary/description of the plugin.
     }
 
     def onConfigChange = { event ->
-        // TODO Implement code that is executed when the project configuration changes.
-        // The event is the same as for 'onChange'.
+        this.mergeConfig(application)
     }
 
     def onShutdown = { event ->

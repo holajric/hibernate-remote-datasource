@@ -2,12 +2,17 @@ package parsers.config
 
 import connectors.DataSourceConnector
 import grails.transaction.Transactional
+import org.codehaus.groovy.grails.commons.GrailsApplication
 import org.codehaus.groovy.grails.commons.GrailsClassUtils
+import org.codehaus.groovy.grails.web.context.ServletContextHolder
+import org.codehaus.groovy.grails.web.servlet.GrailsApplicationAttributes
+import org.springframework.context.ApplicationContext
 import query.Operation
 import query.QueryDescriptor
 import query.builder.QueryBuilder
 import org.codehaus.groovy.grails.commons.DefaultGrailsDomainClass
 import auth.Authenticator
+import query.builder.formatters.Formatter
 
 @Transactional
 class CachedConfigParser {
@@ -19,8 +24,17 @@ class CachedConfigParser {
     static Map<String, Map<String, Object>> authenticationParams  = new HashMap<String, Map<String, Object>>()
 
     static boolean isRemote(Class entity)  {
-        if(!mapping[entity.getName()])
-            mapping[entity.getName()] = GrailsClassUtils.getStaticPropertyValue(entity,'remoteMapping')
+        if(!mapping[entity.getName()]) {
+            mapping[entity.getName()] = GrailsClassUtils.getStaticPropertyValue(entity, 'remoteMapping')
+        }
+        if(mapping[entity.getName()] && !mapping[entity.getName()]["sourceType"])    {
+            ApplicationContext context = ServletContextHolder.servletContext.getAttribute(GrailsApplicationAttributes.APPLICATION_CONTEXT) as ApplicationContext
+            mapping[entity.getName()]["sourceType"] = context.getBean(GrailsApplication).config.grails.plugins.hibernateRemoteDatasource.defaults.sourceType
+        }
+        if(mapping[entity.getName()] && !mapping[entity.getName()]["queryType"]) {
+            ApplicationContext context = ServletContextHolder.servletContext.getAttribute(GrailsApplicationAttributes.APPLICATION_CONTEXT) as ApplicationContext
+            mapping[entity.getName()]?."queryType" = context.getBean(GrailsApplication).config.grails.plugins.hibernateRemoteDatasource.defaults.queryType
+        }
         mapping[entity.getName()] != null
     }
 
@@ -46,7 +60,9 @@ class CachedConfigParser {
         if(!authenticator["${desc.entityName} ${desc.operation}}"])  {
             String name = (mapping?."$desc.entityName"?."operations"?.getAt(desc.operation)?."authentication"
                           ?: mapping[desc.entityName]["authentication"]
-                          ?: "Token")
+                          ?: "")
+            if(name == "")
+                return null
             authenticator["${desc.entityName} ${desc.operation}}"] = Class.forName("auth.${name}Authenticator")?.newInstance(desc.entityName, desc.operation)
         }
 
@@ -87,8 +103,32 @@ class CachedConfigParser {
     static Map<String, Object> getQueryOperation(QueryDescriptor desc)   {
         if(!isOperationAllowed(desc))
             return null
-        if(!mapping?."$desc.entityName"?."operations"?.getAt(desc.operation))
-            mapping?."$desc.entityName"?."operations"?.putAt(desc.operation, [:]) //THERE WILL BE DEFAULT
+        ApplicationContext context = ServletContextHolder.servletContext.getAttribute(GrailsApplicationAttributes.APPLICATION_CONTEXT) as ApplicationContext
+        def defaultConfig = context.getBean(GrailsApplication).config.grails.plugins.hibernateRemoteDatasource.defaults
+        Map<String, Object> tempOperation = [:]
+        defaultConfig.generalDefault.each  {
+            tempOperation[it.key] = it.value
+        }
+        defaultConfig.operations?."${desc.operation}".each  {
+            tempOperation[it.key] = it.value
+        }
+
+        //println tempOperation
+        mapping?."$desc.entityName"?."generalDefault".each {
+            tempOperation[it.key] = it.value
+        }
+        mapping?."$desc.entityName"?."operations"?.getAt(desc.operation).each {
+            tempOperation[it.key] = it.value
+        }
+        //println Formatter.formatAttribute(tempOperation?."endpoint","entityName", desc.entityName.tokenize('.')?.last())
+        tempOperation?."endpoint" = tempOperation?."endpoint"?.replaceAll(/\[:operation(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."endpoint","operation", desc.operation.toString())}")
+        tempOperation?."endpoint" = tempOperation?."endpoint"?.replaceAll(/\[:entityName(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."endpoint","entityName", desc.entityName.tokenize('.')?.last())}")
+        tempOperation?."queryEndpoint" = tempOperation?."queryEndpoint"?.replaceAll(/\[:operation(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."queryEndpoint","operation", desc.operation.toString())}")
+        tempOperation?."queryEndpoint" = tempOperation?."queryEndpoint"?.replaceAll(/\[:entityName(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."queryEndpoint","entityName", desc.entityName.tokenize('.')?.last())}")
+        //println tempOperation
+        if(!mapping?."$desc.entityName"?."operations")
+            mapping?."$desc.entityName"?."operations" = [:]
+        mapping?."$desc.entityName"?."operations"?.putAt(desc.operation, tempOperation)
         mapping?."$desc.entityName"?."operations"?.getAt(desc.operation)
     }
 }

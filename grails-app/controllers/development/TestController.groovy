@@ -10,14 +10,14 @@ class TestController {
         }*/
         new RemoteTest(otherName: "TEST").save()
         new RemoteTest(otherName: "TEST").save()
-        println Test.findAllByNumberBetween(1,12)*.id //NOT WORKING CHECK
-        def t = Test.get(3)?: new Test(name:"qwbaaadsyxabc",number: 10, test:"nope")
+        println Test.findAllByIdBetween(1,12)*.id //NOT WORKING CHECK
+        def t = Test.get(1)?: new Test(name:"qwbaaadsyxabc",number: 10, test:"nope")
         t.save()
         println Test.list()*.name
         t.name = "AHOJ"
         t.save()
         println Test.list()*.name
-        //t.delete()
+        t.delete()
         println Test.list()*.name
     }
 }
