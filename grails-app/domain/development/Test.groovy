@@ -15,7 +15,7 @@ class Test {
                     "name": "otherName"
             ],
             "queryMapping": [
-                    "number BETWEEN": "from=:lowerBound&to=:upperBound"
+                    "number BETWEEN": "from=[:lowerBound|date:'Ymd':5|test:1|asd]&to=[:upperBound]"
             ],
             /*"paramMapping": [
                     "max": "limit"

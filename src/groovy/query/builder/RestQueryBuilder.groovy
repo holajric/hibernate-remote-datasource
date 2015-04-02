@@ -8,6 +8,7 @@ import query.Operator
 import query.QueryDescriptor
 import query.SimpleCondition
 import query.Condition
+import query.builder.formatters.Formatter
 
 /**
  * Created by richard on 18.2.15.
@@ -19,7 +20,8 @@ class RestQueryBuilder implements QueryBuilder {
 
         if (isSingleQuery(desc, operation["endpoint"])) {
             tempUrl += operation["endpoint"]
-            tempUrl = tempUrl.replace("[:${desc.conditions[0].attribute}]", "${desc.conditions[0].value}")
+            tempUrl = tempUrl.replaceAll(/\[:${desc.conditions[0].attribute}(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${formatAttribute(tempUrl,desc.conditions[0].attribute, desc.conditions[0].value)}")
+
         }   else    {
             tempUrl+= generateBatchQuery(desc, operation)
         }
@@ -55,7 +57,6 @@ class RestQueryBuilder implements QueryBuilder {
                 tempUrl+= ((CachedConfigParser.mapping[desc.entityName]?."paramMapping"?."${param.key}")?:param.key) + "=${param.value}"
             }
         }
-
         return tempUrl
     }
 
@@ -67,9 +68,9 @@ class RestQueryBuilder implements QueryBuilder {
         if (CachedConfigParser.mapping[desc.entityName]?."queryMapping"?."${condition.conditionString()}") {
             tempUrl += CachedConfigParser.mapping[desc.entityName]?."queryMapping"?."${condition.conditionString()}"
             if (condition instanceof SimpleCondition)
-                tempUrl = tempUrl.replaceAll(":value", "${condition.value}")
+                tempUrl = tempUrl.replaceAll(/\[:value(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${formatAttribute(tempUrl,"value", condition.value)}")
             if (condition instanceof IntervalCondition)
-                tempUrl = tempUrl.replaceAll(":lowerBound", "${condition.lowerBound}").replaceAll(":upperBound", "${condition.upperBound}")
+                tempUrl = tempUrl.replaceAll(/\[:lowerBound(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${formatAttribute(tempUrl,"lowerBound", condition.lowerBound)}").replaceAll(/\[:upperBound\](\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*/, "${formatAttribute(tempUrl,"upperBound", condition.upperBound)}")
         }
         return tempUrl
     }
@@ -79,6 +80,24 @@ class RestQueryBuilder implements QueryBuilder {
         (condition.comparator == Operator.EQUALS && condition instanceof SimpleCondition) ||
         (CachedConfigParser.mapping[desc.entityName]?."queryMapping"?."${condition.conditionString()}")
         )
+    }
+
+    String formatAttribute(String url, String attribute, Object value)  {
+        def matches = (url =~ /\[:${attribute}((\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)+)\]/)
+        if(matches)
+            for(int i = 0; i < matches.size();i++) {
+                matches[i]?.getAt(1)?.substring(1).tokenize('|').each   {
+                    def formatterStruct = it.tokenize(':')
+                    Formatter formater
+                    try {
+                        if ((formater = Class.forName("query.builder.formatters.${formatterStruct[0].capitalize()}Formatter").newInstance()) instanceof Formatter)
+                            value = formater.format(value, formatterStruct.size > 1 ? formatterStruct[1..-1] : [])
+                    }   catch(ClassNotFoundException ex)    {
+                        //TODO invalid helper
+                    }
+                }
+            }
+        return value
     }
 
 
