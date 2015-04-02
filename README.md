@@ -1,0 +1,1 @@
+# Hibernate remote datasource plugin
