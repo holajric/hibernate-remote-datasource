@@ -1,5 +1,6 @@
 package connectors
 
+import org.codehaus.groovy.grails.web.json.JSONObject
 import query.builder.RemoteQuery
 import auth.Authenticator
 
@@ -8,6 +9,6 @@ import auth.Authenticator
  */
 public interface DataSourceConnector {
     boolean doAction(RemoteQuery query, Authenticator auth)
-    Object read(RemoteQuery query, Authenticator auth)
-    Object write(RemoteQuery query, Authenticator auth)
+    List<JSONObject> read(RemoteQuery query, Authenticator auth)
+    List<JSONObject> write(RemoteQuery query, Authenticator auth)
 }

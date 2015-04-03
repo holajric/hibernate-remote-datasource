@@ -28,7 +28,7 @@ class RestDataSourceConnector implements DataSourceConnector {
     List<JSONObject> read(RemoteQuery query, auth.Authenticator auth = null)  {
         def methodName = sanitizeInput(query, auth)
         if(methodName == false)
-            return []
+            return null
         def requestBody = auth?.getAuthenticatedBody(query) ?: {}
         def response = rest."$methodName"(query.url, requestBody)
         log.info "${response.getStatus()} $query"
@@ -38,7 +38,7 @@ class RestDataSourceConnector implements DataSourceConnector {
     List<JSONObject> write(RemoteQuery query, Authenticator auth = null)   {
         def methodName = sanitizeInput(query, auth)
         if(methodName == false)
-            return []
+            return null
         def requestBody = auth?.getAuthenticatedBody(query) ?: {
             json query?.dataJson?.toString()
             contentType "application/json"

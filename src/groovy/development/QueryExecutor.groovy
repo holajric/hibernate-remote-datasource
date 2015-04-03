@@ -20,23 +20,29 @@ class QueryExecutor {
         }
         def remoteQuery
         if((remoteQuery = CachedConfigParser.getQueryBuilder(desc)?.generateQuery(desc)) == null)   {
-            //log.info ""
+            log.info "RemoteQuery could not be created for ${desc.entityName} ${desc.operation}"
             return false
         }
         def connector
         if((connector = CachedConfigParser.getDataSourceConnector(desc)) == null)   {
+            log.info "DataSourceConnector could not be loaded for ${desc.entityName} ${desc.operation}"
             return false
         }
-        List<JSONObject> responses = connector.read(remoteQuery, CachedConfigParser.getAuthenticator(desc))
+        List<JSONObject> responses
+        if((responses = connector.read(remoteQuery, CachedConfigParser.getAuthenticator(desc))) == null)    {
+            log.info "Data could not be read from ${remoteQuery}"
+            return false
+        }
         return processResponses(responses, desc)
     }
 
     static boolean executeInstanceQuery(QueryDescriptor desc, Object instance)   {
         if(CachedConfigParser.isOperationAllowed(desc)) {
             def mapping = CachedConfigParser.getAttributeMap(desc)
-            //println "building..."
-            def remoteQuery = CachedConfigParser.getQueryBuilder(desc).generateQuery(desc)
-            //println "builded: ${remoteQuery}"
+            def remoteQuery
+            if((remoteQuery = CachedConfigParser.getQueryBuilder(desc)?.generateQuery(desc)) == null)   {
+                return false
+            }
             remoteQuery.dataJson = [:]
             //println "startMapping"
             mapping.each {
@@ -46,16 +52,20 @@ class QueryExecutor {
                 }
             }
             //println "endMapping"
-            def connector = CachedConfigParser.getDataSourceConnector(desc)
+            def connector
+            if((connector = CachedConfigParser.getDataSourceConnector(desc)) == null)   {
+                return false
+            }
             if(desc.operation == Operation.DELETE)  {
                 //println "DELETE - DO ACTION"
                 return connector.doAction(remoteQuery, CachedConfigParser.getAuthenticator(desc))
                 //println "DELETE - END ACTION"
             }
-            //println "SENDING DATA..."
-            List<JSONObject> responses = connector.write(remoteQuery, CachedConfigParser.getAuthenticator(desc))
-            //println "DATA SEND, RESPONSE: ${responses}"
-            //println "PROCESSING"
+            List<JSONObject> responses
+            if((responses = connector.write(remoteQuery, CachedConfigParser.getAuthenticator(desc))) == null)    {
+                log.info "Data could not be read from ${remoteQuery}"
+                return false
+            }
             return processResponses(responses, desc, instance)
         }
         return true
