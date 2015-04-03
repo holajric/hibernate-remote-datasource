@@ -1,5 +1,7 @@
 package development
 
+import groovy.util.logging.Log4j
+import org.codehaus.groovy.grails.exceptions.InvalidPropertyException
 import parsers.config.CachedConfigParser
 import query.IntervalCondition
 import query.QueryDescriptor
@@ -8,24 +10,39 @@ import query.SimpleCondition
 /**
  * Created by richard on 22.3.15.
  */
+@Log4j
 class ResponseFilter {
+    private static final List<String> ALLOWED_METHODS = ["inList", "lessThan", "lessThanEquals", "greaterThan", "greaterThanEquals", "like", "iLike", "rLike", "notEqual", "equals", "isNull", "isNotNull", "inRange", "between"]
     boolean isValid(instance, QueryDescriptor desc) {
-        desc.conditions.each {
-                def method = underscoreToCamelCase(it.comparator.toString())
-                if (it instanceof IntervalCondition) {
-                    if (!this."$method"(instance?."${it.attribute}", it.lowerBound, it.upperBound))
-                        return false
-                }
-                else if (it instanceof SimpleCondition) {
-                    if (!this."$method"(instance?."${it.attribute}", it.value))
-                        return false
-                }
-                else {
-                    if(!this."$method"(instance?."${it.attribute}"))
-                        return false
+        desc?.conditions?.each {
+                String method = underscoreToCamelCase(it.comparator.toString())
+                if(!ALLOWED_METHODS.contains(method))    {
+                    log.info "Method $method not supported skipping"
+                }   else if(it.attribute.empty)  {
+                    log.info "Condition attribute is required"
+                    return false
+                }   else if(it instanceof IntervalCondition && (!it?.lowerBound || !it?.upperBound))   {
+                    log.info "Condition lowerBound and upperBound are required for IntervalCondition"
+                }   else if(it instanceof SimpleCondition && !it?.value)   {
+                    log.info "Condition value is required for SimpleCondition"
+                } else {
+                    try {
+                        if (it instanceof IntervalCondition) {
+                            if (!this."$method"(instance?."${it.attribute}", it.lowerBound, it.upperBound))
+                                return false
+                        } else if (it instanceof SimpleCondition) {
+                            if (!this."$method"(instance?."${it.attribute}", it.value))
+                                return false
+                        } else {
+                            if (!this."$method"(instance?."${it.attribute}"))
+                                return false
+                        }
+                    } catch(MissingPropertyException ex)   {
+                        log.info "Attribute ${it.attribute} not found for ${instance}"
+                    }
                 }
         }
-        true
+        return true
     }
 
     boolean inList(attribute, list) {

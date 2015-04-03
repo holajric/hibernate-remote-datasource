@@ -17,7 +17,7 @@ import query.builder.formatters.Formatter
 @Log4j
 class RestQueryBuilder implements QueryBuilder {
     RestRemoteQuery generateQuery(QueryDescriptor desc) {
-        if(desc.entityName.empty)   {
+        if(!dec.entityName || desc.entityName.empty)   {
             log.info "Descriptor entityName is required"
             return null
         }
@@ -111,7 +111,7 @@ class RestQueryBuilder implements QueryBuilder {
     }
 
     boolean isConditionSupported(Condition condition, QueryDescriptor desc)  {
-        if(!condition.attribute.empty)  {
+        if(condition.attribute.empty)  {
             log.info "Condition attribute is required"
             return false
         }

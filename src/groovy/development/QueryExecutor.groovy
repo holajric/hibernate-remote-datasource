@@ -14,6 +14,10 @@ import synchronisation.JournalLog
 class QueryExecutor {
 
     static boolean executeFinderQuery(QueryDescriptor desc)  {
+        if(!isValidDescriptor(desc))    {
+            log.info "Descriptor $desc is invalid"
+            return false
+        }
         if(!CachedConfigParser.isOperationAllowed(desc)) {
             log.info "Operation ${desc.operation} not allowed for class ${desc.entityName}"
             return false
@@ -37,46 +41,76 @@ class QueryExecutor {
     }
 
     static boolean executeInstanceQuery(QueryDescriptor desc, Object instance)   {
-        if(CachedConfigParser.isOperationAllowed(desc)) {
-            def mapping = CachedConfigParser.getAttributeMap(desc)
-            def remoteQuery
-            if((remoteQuery = CachedConfigParser.getQueryBuilder(desc)?.generateQuery(desc)) == null)   {
-                return false
-            }
-            remoteQuery.dataJson = [:]
-            //println "startMapping"
-            mapping.each {
-                //println "${it.key}: ${it.value}"
-                if(instance."$it.key") {
-                    remoteQuery.dataJson."$it.value" =  instance."$it.key"
-                }
-            }
-            //println "endMapping"
-            def connector
-            if((connector = CachedConfigParser.getDataSourceConnector(desc)) == null)   {
-                return false
-            }
-            if(desc.operation == Operation.DELETE)  {
-                //println "DELETE - DO ACTION"
-                return connector.doAction(remoteQuery, CachedConfigParser.getAuthenticator(desc))
-                //println "DELETE - END ACTION"
-            }
-            List<JSONObject> responses
-            if((responses = connector.write(remoteQuery, CachedConfigParser.getAuthenticator(desc))) == null)    {
-                log.info "Data could not be read from ${remoteQuery}"
-                return false
-            }
-            return processResponses(responses, desc, instance)
+        if(!isValidDescriptor(desc))    {
+            log.info "Descriptor $desc is invalid"
+            return false
         }
-        return true
+        if(instance == null)    {
+            log.info "Instance is required"
+            return false
+        }
+        if(!CachedConfigParser.isOperationAllowed(desc)) {
+            log.info "Operation ${desc.operation} not allowed for class ${desc.entityName}"
+            return false
+        }
+        def mapping
+        if((mapping = CachedConfigParser.getAttributeMap(desc)) == null)    {
+            log.info "Mapping for class ${desc.entityName} could not be loaded"
+            return false
+        }
+        def remoteQuery
+        if((remoteQuery = CachedConfigParser.getQueryBuilder(desc)?.generateQuery(desc)) == null)   {
+            log.info "RemoteQuery could not be created for ${desc.entityName} ${desc.operation}"
+            return false
+        }
+        remoteQuery.dataJson = [:]
+        mapping.each {
+            if(!instance?."$it.key") {
+                log.info "Instance ${instance} does not have an attribute ${it.key}, skipping"
+            }   else    {
+                remoteQuery?.dataJson?."$it.value" =  instance?."$it.key"
+            }
+        }
+        def connector
+        if((connector = CachedConfigParser.getDataSourceConnector(desc)) == null)   {
+            log.info "DataSourceConnector could not be loaded for ${desc.entityName} ${desc.operation}"
+            return false
+        }
+        if(desc.operation == Operation.DELETE)  {
+            if(connector.doAction(remoteQuery, CachedConfigParser.getAuthenticator(desc)) == false) {
+                log.info "Action could not be done from ${remoteQuery}"
+                return false
+            }
+            return true
+        }
+        List<JSONObject> responses
+        if((responses = connector.write(remoteQuery, CachedConfigParser.getAuthenticator(desc))) == null)    {
+            log.info "Data could not be read from ${remoteQuery}"
+            return false
+        }
+        return processResponses(responses, desc, instance)
     }
 
     private static boolean isValidDescriptor(QueryDescriptor desc)    {
+        if(!desc.entityName || desc.entityName.empty)   {
+            log.info "Descriptor entityName is required"
+            return false
+        }
 
+        if(!desc.operation)    {
+            log.info "Descriptor operation is required"
+            return false
+        }
+
+        return true
     }
 
     private static boolean processResponses(List<JSONObject> responses, QueryDescriptor desc, instance = null)   {
-        def mapping = CachedConfigParser.getAttributeMap(desc)
+        def mapping
+        if((mapping = CachedConfigParser.getAttributeMap(desc)) == null)    {
+            log.info "Mapping for class ${desc.entityName} could not be loaded"
+            return false
+        }
         ResponseFilter filter = new ResponseFilter()
         responses.each { response ->
             if (filter.isValid(response, desc)) {
