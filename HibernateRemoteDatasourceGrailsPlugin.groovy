@@ -58,10 +58,8 @@ Brief summary/description of the plugin.
         ConfigObject currentConfig = app.config
         ConfigSlurper slurper = new ConfigSlurper(Environment.getCurrent().getName());
         ConfigObject secondaryConfig = slurper.parse(app.classLoader.loadClass("HibernateRemoteDatasourceDefaultConfig"))
-
         ConfigObject config = new ConfigObject();
         config.putAll(secondaryConfig.merge(currentConfig))
-
         app.config = config;
     }
 
