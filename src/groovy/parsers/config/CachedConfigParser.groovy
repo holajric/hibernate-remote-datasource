@@ -46,10 +46,8 @@ class CachedConfigParser {
     }
 
     static DataSourceConnector getDataSourceConnector(QueryDescriptor desc)    {
-        if(desc.entityName.empty)   {
-            log.info "Descriptor entityName is required"
+        if(!isValidDescriptor(desc))
             return null
-        }
         if(!mapping[desc.entityName]["sourceType"])   {
             log.info "DataSourceConnector type for class has to be set"
             return null
@@ -65,10 +63,8 @@ class CachedConfigParser {
     }
 
     static QueryBuilder getQueryBuilder(QueryDescriptor desc)  {
-        if(desc.entityName.empty)   {
-            log.info "Descriptor entityName is required"
+        if(!isValidDescriptor(desc))
             return null
-        }
         if(!mapping[desc.entityName]["queryType"])   {
             log.info "QueryBuilder type for class has to be set"
             return null
@@ -84,6 +80,8 @@ class CachedConfigParser {
     }
 
     static Authenticator getAuthenticator(QueryDescriptor desc) {
+        if(!isValidDescriptor(desc))
+            return null
         if(!authenticator["${desc.entityName} ${desc.operation}}"])  {
             String name = (mapping?."$desc.entityName"?."operations"?.getAt(desc.operation)?."authentication"
                           ?: mapping[desc.entityName]["authentication"]
@@ -113,10 +111,26 @@ class CachedConfigParser {
     }
 
     static boolean isOperationAllowed(QueryDescriptor desc) {
+        if(!isValidDescriptor(desc))
+            return false
         return (mapping[desc.entityName]["allowed"] == null || mapping[desc.entityName]["allowed"].contains(desc.operation))
     }
 
+    private static boolean isValidDescriptor(QueryDescriptor desc) {
+        if (desc.entityName.empty) {
+            log.info "Descriptor entityName is required"
+            return false
+        }
+        if (!desc.operation) {
+            log.info "Descriptor operation is required"
+            return false
+        }
+        return true
+    }
+
     static Map<String, String> getAttributeMap(QueryDescriptor desc)   {
+        if(!isValidDescriptor(desc))
+            return null
         if(!attributeMapping[desc.entityName]) {
             attributeMapping[desc.entityName] = [:]
             try {
@@ -136,6 +150,8 @@ class CachedConfigParser {
     }
 
     static Map<String, Object> getQueryOperation(QueryDescriptor desc)   {
+        if(!isValidDescriptor(desc))
+            return null
         if(!isOperationAllowed(desc))   {
             log.info "Operation ${desc.operation} for ${desc.entityName} is not allowed"
             return null
@@ -144,26 +160,24 @@ class CachedConfigParser {
         ApplicationContext context = ServletContextHolder.servletContext.getAttribute(GrailsApplicationAttributes.APPLICATION_CONTEXT) as ApplicationContext
         def defaultConfig = context.getBean(GrailsApplication).config.grails.plugins.hibernateRemoteDatasource.defaults
         Map<String, Object> tempOperation = [:]
-        defaultConfig.generalDefault.each  {
-            tempOperation[it.key] = it.value
+        defaultConfig?.generalDefault?.each  {
+            tempOperation[it?.key] = it?.value
         }
-        defaultConfig.operations?."${desc.operation}".each  {
-            tempOperation[it.key] = it.value
+        defaultConfig?.operations?."${desc.operation}"?.each  {
+            tempOperation[it?.key] = it?.value
         }
 
-        //println tempOperation
-        mapping?."$desc.entityName"?."generalDefault".each {
-            tempOperation[it.key] = it.value
+        mapping?."${desc?.entityName}"?."generalDefault"?.each {
+            tempOperation[it?.key] = it?.value
         }
-        mapping?."$desc.entityName"?."operations"?.getAt(desc.operation).each {
-            tempOperation[it.key] = it.value
+        mapping?."${desc?.entityName}"?."operations"?.getAt(desc?.operation)?.each {
+            tempOperation[it?.key] = it?.value
         }
-        //println Formatter.formatAttribute(tempOperation?."endpoint","entityName", desc.entityName.tokenize('.')?.last())
+
         tempOperation?."endpoint" = tempOperation?."endpoint"?.replaceAll(/\[:operation(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."endpoint","operation", desc.operation.toString())}")
         tempOperation?."endpoint" = tempOperation?."endpoint"?.replaceAll(/\[:entityName(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."endpoint","entityName", desc.entityName.tokenize('.')?.last())}")
         tempOperation?."queryEndpoint" = tempOperation?."queryEndpoint"?.replaceAll(/\[:operation(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."queryEndpoint","operation", desc.operation.toString())}")
         tempOperation?."queryEndpoint" = tempOperation?."queryEndpoint"?.replaceAll(/\[:entityName(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."queryEndpoint","entityName", desc.entityName.tokenize('.')?.last())}")
-        //println tempOperation
         if(!mapping?."$desc.entityName"?."operations")
             mapping?."$desc.entityName"?."operations" = [:]
         mapping?."$desc.entityName"?."operations"?.putAt(desc.operation, tempOperation)

@@ -111,21 +111,45 @@ class QueryExecutor {
             log.info "Mapping for class ${desc.entityName} could not be loaded"
             return false
         }
+        if(!mapping["id"])    {
+            mapping["id"] = "id"
+        }
         ResponseFilter filter = new ResponseFilter()
         responses.each { response ->
+            if(!response[mapping["id"]])    {
+                log.info "There is no id in response, response can not be processed"
+                return false
+            }
             if (filter.isValid(response, desc)) {
-                //println response
-                def instanceTemp = instance ?: Class.forName(desc.entityName)?.directGet(response[mapping["id"]]) ?: Class.forName(desc.entityName).newInstance()
-                //println instanceTemp
+                def instanceTemp
+                try {
+                    if((instanceTemp = instance ?: Class.forName(desc.entityName)?.directGet(response[mapping["id"]?:"id"]) ?: Class.forName(desc.entityName).newInstance()) == null) {
+                        log.info "Instance could not be found or created"
+                        return false
+                    }
+                }   catch(ClassNotFoundException ex)    {
+                    log.info "Class ${desc.entityName} could not be found."
+                    return false
+                }   catch(MissingMethodException ex)    {
+                    log.info "Class ${desc.entityName} is not domain."
+                    return false
+                }
                 if(!JournalLog.countByEntityAndInstanceIdAndIsFinished(desc.entityName, response[mapping["id"]], false)) {
-                    SynchronizationManager.withTransaction(instanceTemp.class.name, response[mapping["id"]], desc.operation) {
-                        //println "transInStart"
-                        buildInstance(mapping, response, instanceTemp)
-                        //println "transInEnd"
+                    if(!SynchronizationManager.withTransaction(instanceTemp.class.name, response[mapping["id"]], desc.operation) {
+                        if(!buildInstance(mapping, response, instanceTemp)) {
+                            log.info "Instance ${instanceTemp} could not be builded from response ${response}"
+                            return false
+                        }
                         return true
+                    })  {
+                        log.info ""
+                        return false
                     }
                 }   else    {
-                    buildInstance(mapping, response, instanceTemp)
+                    if(!buildInstance(mapping, response, instanceTemp)) {
+                        log.info "Instance ${instanceTemp} could not be builded from response ${response}"
+                        return false
+                    }
                 }
             }
         }
@@ -134,15 +158,33 @@ class QueryExecutor {
     }
 
     private static boolean buildInstance(mapping, response, instanceTemp) {
+        if(instanceTemp == null)    {
+            log.info "Target instance is required"
+            return false
+        }
         mapping.each {
-            if (response["${it.value}"]) {
-                instanceTemp."${it.key}" = response["${it.value}"]
+            try {
+                if (response["${it.value}"]) {
+                    instanceTemp?."${it.key}" = response["${it.value}"]
+                } else {
+                    log.info "Response for attribute ${it.key} mapped by ${it.value} empty, skipping"
+                }
+            } catch(MissingPropertyException ex)    {
+                log.info "Attribute ${it.key} od ${instanceTemp} not found, skipping"
             }
         }
-        //println "dirSaveStart"
-        instanceTemp.directSave()
-        //println "dirSaveEnd"
-        //println instanceTemp
+        try {
+            instanceTemp.validate()
+            if(instanceTemp.hasErrors())   {
+                log.info "Instance could not be saved for following reasons ${instanceTemp.errors}"
+                return false
+            }
+            instanceTemp.directSave()
+            return true
+        } catch(MissingMethodException ex)    {
+            log.info "${instanceTemp} is not domain class"
+            return false
+        }
     }
 
 }

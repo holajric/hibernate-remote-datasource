@@ -31,7 +31,7 @@ class RestDataSourceConnector implements DataSourceConnector {
             return null
         def requestBody = auth?.getAuthenticatedBody(query) ?: {}
         def response = rest."$methodName"(query.url, requestBody)
-        log.info "${response.getStatus()} $query"
+        log.info "${response?.getStatus()} $query"
         return sanitizeResponse(response)
     }
 
@@ -44,7 +44,7 @@ class RestDataSourceConnector implements DataSourceConnector {
             contentType "application/json"
         }
         def response = rest."$methodName"(query?.url, requestBody)
-        log.info "${response.getStatus()} $query"
+        log.info "${response?.getStatus()} $query"
         return sanitizeResponse(response)
     }
 
@@ -70,6 +70,13 @@ class RestDataSourceConnector implements DataSourceConnector {
     }
 
     private List<JSONObject> sanitizeResponse(response) {
+        if(response?.getStatus()?.toString()[0] == '4')  {
+            log.info "resource not found or not accepted"
+            return null
+        }
+        if(response?.getStatus()?.toString()[0] == '5')   {
+            log.info "resource failed with error"
+        }
         if(!(response instanceof RestResponse))    {
             return null
         }

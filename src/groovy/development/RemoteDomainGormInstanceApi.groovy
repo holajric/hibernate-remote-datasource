@@ -22,6 +22,7 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
         this.queryExecutor = new QueryExecutor()
         def mc = persistentClass.getMetaClass()
         mc."directSave" = { args -> super.save(delegate, args) }
+        mc."directDelete" = { args -> super.delete(delegate, args) }
     }
 
     public D save(D instance) {
@@ -67,6 +68,7 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
             synchronize("delete", instance)
             //println "endSync"
         }
+
         super.delete(instance)
     }
 
