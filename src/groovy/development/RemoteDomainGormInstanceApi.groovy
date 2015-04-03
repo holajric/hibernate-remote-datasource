@@ -2,6 +2,7 @@ package development
 
 import groovy.transform.CompileStatic
 import groovy.transform.TypeCheckingMode
+import groovy.util.logging.Log4j
 import org.codehaus.groovy.grails.orm.hibernate.HibernateGormInstanceApi
 import org.codehaus.groovy.grails.orm.hibernate.HibernateDatastore
 import org.grails.datastore.gorm.finders.FinderMethod
@@ -12,13 +13,19 @@ import query.Operation
 /**
  * Created by richard on 1.3.15.
  */
+@Log4j
 class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
-    CallingParser callingParserService
+    CallingParser callingParser
     QueryExecutor queryExecutor
+    private static final List<String> ALLOWED_OPERATIONS = [
+            "create",
+            "update",
+            "delete"
+    ]
 
-    RemoteDomainGormInstanceApi(Class<D> persistentClass, HibernateDatastore datastore, ClassLoader classLoader, CallingParser callingParserService) {
+    RemoteDomainGormInstanceApi(Class<D> persistentClass, HibernateDatastore datastore, ClassLoader classLoader, CallingParser callingParser) {
         super(persistentClass, datastore, classLoader)
-        this.callingParserService = callingParserService
+        this.callingParser = callingParser
         this.queryExecutor = new QueryExecutor()
         def mc = persistentClass.getMetaClass()
         mc."directSave" = { args -> super.save(delegate, args) }
@@ -28,24 +35,16 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     public D save(D instance) {
         if(CachedConfigParser.isRemote(instance.class)) {
             boolean isNew = (instance?.id == null)
-            //println (isNew ? "create" : "update")
-            //println "startSync"
             synchronize(isNew ? "create" : "update", instance)
-            //println "endSync"
         }
-        //println "preparing super save"
         def res = super.save(instance)
-        //println "ended super save ${res}"
         return res
     }
 
     public D save(D instance, boolean validate) {
         if(CachedConfigParser.isRemote(instance.class)) {
             boolean isNew = (instance?.id == null)
-            //println (isNew ? "create" : "update")
-            //println "startSync"
             synchronize(isNew ? "create" : "update", instance)
-            //println "endSync"
         }
         super.save(instance, validate)
     }
@@ -53,20 +52,14 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
     public D save(D instance, java.util.Map params) {
         if(CachedConfigParser.isRemote(instance.class)) {
             boolean isNew = (instance?.id == null)
-            //println (isNew ? "create" : "update")
-            //println "startSync"
             synchronize(isNew ? "create" : "update", instance)
-            //println "endSync"
         }
         super.save(instance, params)
     }
 
     public void delete(D instance) {
         if(CachedConfigParser.isRemote(instance.class)) {
-            //println "delete"
-            //println "startSync"
             synchronize("delete", instance)
-            //println "endSync"
         }
 
         super.delete(instance)
@@ -74,22 +67,24 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
 
     public void delete(D instance, java.util.Map params) {
         if(CachedConfigParser.isRemote(instance.class)) {
-            //println "delete"
-            //println "startSync"
             synchronize("delete", instance)
-            //println "endSync"
         }
         super.delete(instance, params)
     }
 
     private boolean synchronize(String operation, D instance)    {
+        if(!ALLOWED_OPERATIONS.contains(operation))  {
+            log.info "Operation $operation is not allowed"
+            return false
+        }
         def operationLoc = Operation."${operation.toUpperCase()}"
         def result = SynchronizationManager.withCheckedTransaction(instance, operationLoc)  {
-            def queryDescriptor = callingParserService.parseInstanceMethod(operation, instance)
-            //println queryDescriptor
-            //println "startEx"
+            def queryDescriptor
+            if((queryDescriptor = callingParser.parseInstanceMethod(operation, instance)) == null)  {
+                log.info "Query descriptor for $operation of $instance  could not be generated"
+                return false
+            }
             return queryExecutor.executeInstanceQuery(queryDescriptor, instance)
-            //println "endEx"
         }
         return result
     }

@@ -1,6 +1,7 @@
 package development
 
 import grails.transaction.Transactional
+import groovy.util.logging.Log4j
 import org.codehaus.groovy.grails.commons.DefaultGrailsDomainClass
 import org.grails.datastore.gorm.finders.FinderMethod
 import org.springframework.transaction.PlatformTransactionManager
@@ -16,32 +17,25 @@ import synchronisation.JournalLog
 /**
  * Created by richard on 1.3.15.
  */
+@Log4j
 class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
     CallingParser callingParser
-    RemoteDomainGormStaticApi(Class<D> persistentClass, HibernateDatastore datastore, List<FinderMethod> finders, ClassLoader classLoader, PlatformTransactionManager transactionManager, CallingParser callingParserService) {
+    RemoteDomainGormStaticApi(Class<D> persistentClass, HibernateDatastore datastore, List<FinderMethod> finders, ClassLoader classLoader, PlatformTransactionManager transactionManager, CallingParser callingParser) {
         super(persistentClass, datastore, finders, classLoader, transactionManager)
-        this.callingParser = callingParserService
+        this.callingParser = callingParser
     }
 
 
     @Override
     public D get(Serializable id)   {
         if(CachedConfigParser.isRemote(persistentClass)) {
-            //println "start: ${JournalLog.findById(1)?.isFinished}"
-            //println "get"
             SynchronizationManager.withCheckedTransaction(persistentClass.getName(), id, Operation.READ) {
-                //println "startsynch"
                 synchronize("findById", [id])
-                //println "inside: ${JournalLog.findById(1)?.isFinished}"
-                //println "endsynch"
                 return true
             }
-            //println "pre-super ${persistentClass} ${Thread.currentThread().getStackTrace()}"
         }
 
-        def res = super.get(id)
-        //println "end: ${JournalLog.findById(1).isFinished}"
-        return res
+        return super.get(id)
     }
 
     @Override
@@ -68,10 +62,8 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
                 def mc = persistentClass.getMetaClass()
                 mc.static."directGet" = { Object[] varArgs ->
                     def argumentsForMethod = varArgs?.length == 1 && varArgs[0].getClass().isArray() ? varArgs[0] : varArgs
-                    //println "pre-direct-get"
                     super.get(argumentsForMethod)
                 }
-                //println "pre-direct-get"
                 return super.get(args)
             }
             throw new MissingMethodException(methodName, persistentClass, args)
@@ -92,11 +84,11 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
 	}
 
     boolean synchronize(methodName, args)   {
-        def queryDescriptor = callingParser.parseFinder(persistentClass.getName(), methodName, args)
-        //println queryDescriptor
-        //println "startExec"
-        def res =  QueryExecutor.executeFinderQuery(queryDescriptor)
-        //println "EndExec"
-        return res
+        def queryDescriptor
+        if((queryDescriptor = callingParser.parseFinder(persistentClass.getName(), methodName, args)) == null)  {
+            log.info "Query descriptor for $methodName($args) could not be generated"
+            return false
+        }
+        return QueryExecutor.executeFinderQuery(queryDescriptor)
     }
 }
