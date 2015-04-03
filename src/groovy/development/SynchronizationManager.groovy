@@ -35,18 +35,13 @@ class SynchronizationManager {
     }
 
     private static boolean runTransaction(JournalLog log, action, instance = null) {
-        //println "locking ${log.instanceId}"
         log.save(failOnError: true)
-        //println "action start"
         if (!action())
             return false
-        //println "action over"
         if(instance)
             log.instanceId = instance?.id
         log.isFinished = true
         log.save(failOnError: true, flush: true)
-        //println "unlocking ${log.instanceId}"
-        //println "DeepInside: ${JournalLog.get(1)}"
         return true
     }
 

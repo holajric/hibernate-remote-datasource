@@ -86,6 +86,10 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
             }
             return queryExecutor.executeInstanceQuery(queryDescriptor, instance)
         }
+        if(!result)  {
+            log.info "Transaction wasn't finished succesfully"
+            return false
+        }
         return result
     }
 }

@@ -29,9 +29,12 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
     @Override
     public D get(Serializable id)   {
         if(CachedConfigParser.isRemote(persistentClass)) {
-            SynchronizationManager.withCheckedTransaction(persistentClass.getName(), id, Operation.READ) {
+            if(!SynchronizationManager.withCheckedTransaction(persistentClass.getName(), id, Operation.READ) {
                 synchronize("findById", [id])
                 return true
+            }) {
+                log.info "Transaction wasn't finished succesfully"
+                return false
             }
         }
 

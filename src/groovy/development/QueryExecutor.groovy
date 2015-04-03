@@ -142,7 +142,7 @@ class QueryExecutor {
                         }
                         return true
                     })  {
-                        log.info ""
+                        log.info "Transaction wasn't finished succesfully"
                         return false
                     }
                 }   else    {
