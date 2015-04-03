@@ -1,5 +1,6 @@
 package parsers.calling
 
+import groovy.util.logging.Log4j
 import query.ConditionJoin
 import query.IntervalCondition
 import query.Operation
@@ -12,9 +13,10 @@ import java.beans.Introspector
 /**
  * Created by richard on 18.2.15.
  */
+@Log4j
 class GormApiParser implements CallingParser {
 
-    static conditions = [
+    private static final List<String> CONDITIONS = [
         "InList",
         "LessThan",
         "LessThanEquals",
@@ -30,16 +32,28 @@ class GormApiParser implements CallingParser {
         "IsNull"
     ]
 
-    QueryDescriptor parseFinder(String clazz, String finder, params)   {
+    private static final List<String> ALLOWED_OPERATIONS = [
+            "create",
+            "update",
+            "delete"
+    ]
 
+    private static final List<String> ALLOWED_FINDERS = [
+            "find",
+            "findAll",
+            "get",
+            "list"
+    ]
+
+    QueryDescriptor parseFinder(String clazz, String finder, params)   {
         def splitted = finder.replaceFirst(/By/,"<SPLIT>").split(/<SPLIT>/)
         String operation = splitted?.getAt(0)
-        String query
-        try {
-            query = splitted?.getAt(1)
-        } catch(ArrayIndexOutOfBoundsException e) {
-            query = null
+        if(!ALLOWED_FINDERS.contains(operation)) {
+            log.info "finder $operation is not supported"
+            return null
         }
+        String query = (splitted.size() > 1) ? splitted?.getAt(1) : null
+
         ConditionJoin conditionJoin = ConditionJoin.NONE
         def subqueries = [query]
         if(query) {
@@ -49,6 +63,7 @@ class GormApiParser implements CallingParser {
                 conditionJoin = ConditionJoin.OR
             }
         }
+
         def queryDesc = new QueryDescriptor(entityName: clazz, conditionJoin: conditionJoin, operation: Operation.READ)
 
         def counter = 0
@@ -56,7 +71,7 @@ class GormApiParser implements CallingParser {
             subqueries.each { subquery ->
                 subquery = Introspector.decapitalize(subquery)
                 Operator operator = Operator.EQUALS
-                conditions.eachWithIndex { condition, i ->
+                CONDITIONS.eachWithIndex { condition, i ->
                     if (subquery.contains(condition)) {
                         subquery = subquery.replace(condition, "")
                         operator = Operator.values()[i]
@@ -75,26 +90,33 @@ class GormApiParser implements CallingParser {
                 }
             }
         }
-        if(params.size() == counter + 1)   {
+
+        if(params.size() >= counter + 1)   {
             queryDesc.paginationSorting = params[counter]
         }
-        if(operation != "find" && operation != "findAll")
-            return null
-        queryDesc.operation = Operation.READ
 
         if(operation == "find")
-                queryDesc.paginationSorting["max"] = 1
+            queryDesc.paginationSorting["max"] = 1
 
         return queryDesc
     }
 
     QueryDescriptor parseInstanceMethod(String operation, instance) {
+        if(instance == null)    {
+            log.info "Instance is required"
+            return null
+        }
+        if(!ALLOWED_OPERATIONS.contains(operation)) {
+            log.info "Operation $operation is not supported"
+            return null
+        }
         def queryDesc = new QueryDescriptor(entityName: instance.class.getName())
         queryDesc.operation = Operation."${operation.toUpperCase()}"
         if(operation == "update" || operation == "delete")   {
-            queryDesc.conditions.add(new SimpleCondition(attribute: "id", comparator: Operator.EQUALS, value: instance.id ))
+            if(instance?.id)
+                queryDesc.conditions.add(new SimpleCondition(attribute: "id", comparator: Operator.EQUALS, value: instance.id ))
         }
 
-        queryDesc
+        return queryDesc
     }
 }
