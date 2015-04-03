@@ -10,10 +10,6 @@ class RestRemoteQuery implements RemoteQuery {
     String method
     JSONObject dataJson
 
-    Map<String, Object> getQueryParams()    {
-        [ "url": url, "method": method, "data":dataJson ]
-    }
-
     String toString()   {
         "$method $url $dataJson"
     }

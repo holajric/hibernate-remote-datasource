@@ -2,31 +2,33 @@ package development
 
 import grails.transaction.Transactional
 import grails.converters.JSON
+import groovy.util.logging.Log4j
 import org.codehaus.groovy.grails.web.json.JSONObject
 import parsers.config.CachedConfigParser
 import query.QueryDescriptor
 import query.Operation
 import synchronisation.JournalLog
 
-
+@Log4j
 @Transactional
 class QueryExecutor {
 
     static boolean executeFinderQuery(QueryDescriptor desc)  {
-        if(CachedConfigParser.isOperationAllowed(desc)) {
-            def remoteQuery = CachedConfigParser.getQueryBuilder(desc).generateQuery(desc)
-            //println remoteQuery
-            def connector = CachedConfigParser.getDataSourceConnector(desc)
-            //println connector.toString()+" readStart"
-            List<JSONObject> responses = connector.read(remoteQuery, CachedConfigParser.getAuthenticator(desc))
-            //println "readEnd"
-            //println responses
-            //println "startProc"
-            def res = processResponses(responses, desc)
-            //println "endProc"
-            return res
+        if(!CachedConfigParser.isOperationAllowed(desc)) {
+            log.info "Operation ${desc.operation} not allowed for class ${desc.entityName}"
+            return false
         }
-        return true
+        def remoteQuery
+        if((remoteQuery = CachedConfigParser.getQueryBuilder(desc)?.generateQuery(desc)) == null)   {
+            //log.info ""
+            return false
+        }
+        def connector
+        if((connector = CachedConfigParser.getDataSourceConnector(desc)) == null)   {
+            return false
+        }
+        List<JSONObject> responses = connector.read(remoteQuery, CachedConfigParser.getAuthenticator(desc))
+        return processResponses(responses, desc)
     }
 
     static boolean executeInstanceQuery(QueryDescriptor desc, Object instance)   {
@@ -59,7 +61,11 @@ class QueryExecutor {
         return true
     }
 
-     private static boolean processResponses(List<JSONObject> responses, QueryDescriptor desc, instance = null)   {
+    private static boolean isValidDescriptor(QueryDescriptor desc)    {
+
+    }
+
+    private static boolean processResponses(List<JSONObject> responses, QueryDescriptor desc, instance = null)   {
         def mapping = CachedConfigParser.getAttributeMap(desc)
         ResponseFilter filter = new ResponseFilter()
         responses.each { response ->
