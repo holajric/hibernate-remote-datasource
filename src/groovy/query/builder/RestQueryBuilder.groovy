@@ -16,7 +16,11 @@ import query.builder.formatters.Formatter
  */
 @Log4j
 class RestQueryBuilder implements QueryBuilder {
-    RestRemoteQuery generateQuery(QueryDescriptor desc) {
+    RestRemoteQuery generateHashQuery(QueryDescriptor desc) {
+        return generateQuery(desc, "hash")
+    }
+
+    RestRemoteQuery generateQuery(QueryDescriptor desc, String prefix = "") {
         if(!desc.entityName || desc.entityName.empty)   {
             log.info "Descriptor entityName is required"
             return null
@@ -31,17 +35,18 @@ class RestQueryBuilder implements QueryBuilder {
             log.info "Operation configuration for ${desc.entityName} ${desc.operation} could not be loaded"
             return null
         }
-        if (isSingleQuery(desc, operation["endpoint"])) {
-            if(!operation["endpoint"])  {
-                log.info "Operation endpoint is required"
-                return null
-            }
-            tempUrl += operation["endpoint"]
+        String endpoint = prefix.empty ? "endpoint" : prefix + "endpoint".capitalize()
+        if(!operation[endpoint])  {
+            log.info "Operation $prefix endpoint is required"
+            return null
+        }
+        if (isSingleQuery(desc, operation[endpoint])) {
+            tempUrl += operation[endpoint]
             tempUrl = tempUrl.replaceAll(/\[:${desc.conditions[0].attribute}(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempUrl, desc.conditions[0].attribute, desc.conditions[0].value)}")
         }   else    {
-            tempUrl+= generateBatchQuery(desc, operation)
+            tempUrl+= generateBatchQuery(desc, operation, prefix)
         }
-        println "${desc.operation} ${operation["method"]} ${tempUrl}" //TODO: delete
+        println "${desc.operation} ${operation["method"]} ${tempUrl}" //TODO: delete this in the end
         if(!operation["method"])    {
             log.info "Operation method is required"
             return null
@@ -57,16 +62,18 @@ class RestQueryBuilder implements QueryBuilder {
                 (endpoint?.contains("[:${desc.conditions[0].attribute}]")))
     }
 
-    String generateBatchQuery(QueryDescriptor desc, operation)    {
+    String generateBatchQuery(QueryDescriptor desc, operation, prefix = "")    {
         if(desc.conditionJoin == ConditionJoin.OR && !desc.conditions.empty) {
             log.info "Rest queries do not support Or conditions, they will be skipped and filtered locally"
             return ""
         }
-        def tempUrl = operation["queryEndpoint"]?: (operation["endpoint"])?.replaceAll(/\/\[\:.*\]/, "") ?: {
+        String endpoint = prefix.empty ? "endpoint" : prefix + "endpoint".capitalize()
+        String queryEndpoint = prefix.empty ? "queryEndpoint" : prefix + "queryEndpoint".capitalize()
+        String tempUrl = operation[queryEndpoint]?: (operation[endpoint])?.replaceAll(/\/\[\:.*\]/, "") ?: {
             log.info "Operation ${desc.operation} for ${desc.entityName} has no endpoint, empty endpoint will be used"
             return ""
         }
-        boolean first = true
+        boolean first = tempUrl.contains("?")
         desc.conditions.eachWithIndex { condition, index ->
             if(!isConditionSupported(condition, desc)) {
                 log.info "condition $condition is not supported by this QueryBuilder, it will be skipped and filtered locally"
@@ -123,7 +130,7 @@ class RestQueryBuilder implements QueryBuilder {
             log.info "Condition lowerBound and upperBound are required for IntervalCondition"
             return false
         }
-        //TODO SPLIT CONDITION INTO MORE WITH LOGGING
+        //TODO: OPTIONALLY SPLIT CONDITION INTO MORE WITH LOGGING
         return (
         (condition.comparator == Operator.EQUALS && condition instanceof SimpleCondition) ||
         (CachedConfigParser.mapping[desc.entityName]?."queryMapping"?."${condition.conditionString()}")

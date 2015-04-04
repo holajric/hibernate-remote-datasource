@@ -51,6 +51,14 @@ class QueryExecutor {
             synchLog.save(flush:true)
             return false
         }
+        println connector.read(CachedConfigParser.getQueryBuilder(desc)?.generateHashQuery(desc))?.first()?."hash"
+        println synchLog.lastResponseHash
+        if(synchLog.lastResponseHash && (connector.read(CachedConfigParser.getQueryBuilder(desc)?.generateHashQuery(desc))?.first()?."hash" == synchLog.lastResponseHash)) {
+            log.info "Remote data weren't changed, quitting"
+            synchLog.isFinished = true
+            synchLog.save(flush: true)
+            return true
+        }
         List<JSONObject> responses
         if((responses = connector.read(remoteQuery, CachedConfigParser.getAuthenticator(desc))) == null)    {
             log.info "Data could not be read from ${remoteQuery}"
@@ -58,6 +66,8 @@ class QueryExecutor {
             synchLog.save(flush:true)
             return false
         }
+        /*println responses.toString().hashCode().toString()
+        println synchLog.lastResponseHash*/
         if(synchLog.lastResponseHash && (synchLog.lastResponseHash == responses.toString().hashCode().toString()))   {
             log.info "Remote data weren't changed, quitting"
             synchLog.isFinished = true
@@ -151,6 +161,14 @@ class QueryExecutor {
                 return false
             }
             return true
+        }
+        if(desc.operation == Operation.UPDATE) {
+            if(synchLog.lastResponseHash && (connector.read(CachedConfigParser.getQueryBuilder(desc)?.generateHashQuery(desc))?."hash" == synchLog.lastResponseHash)) {
+                log.info "Remote data weren't changed, quitting"
+                synchLog.isFinished = true
+                synchLog.save(flush: true)
+                return true
+            }
         }
         List<JSONObject> responses
         if((responses = connector.write(remoteQuery, CachedConfigParser.getAuthenticator(desc))) == null)    {

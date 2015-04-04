@@ -34,6 +34,9 @@ class Test {
                     (Operation.READ):[
                         "endpoint": "remoteTest/show/[:id]",
                         "queryEndpoint": "remoteTest",
+                        "hashEndpoint": "remoteTest/show/[:id]?hash=true",
+                        "hashQueryEndpoint": "remoteTest?hash=true"
+                        //"hashFunction": { data -> data.hashCode().toString()},
                         /*"method": "GET",
                         "authenticationParams": [
                                 "token": "readToken"
