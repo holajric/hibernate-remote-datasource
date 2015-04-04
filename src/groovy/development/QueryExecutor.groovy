@@ -8,59 +8,124 @@ import parsers.config.CachedConfigParser
 import query.QueryDescriptor
 import query.Operation
 import synchronisation.JournalLog
+import synchronisation.SynchLog
 
 @Log4j
 @Transactional
 class QueryExecutor {
 
     static boolean executeFinderQuery(QueryDescriptor desc)  {
+        SynchLog synchLog = SynchLog.findByQuery(desc.toString().hashCode().toString())
+        if(synchLog && !synchLog.isFinished)    {
+            log.info "Query $desc already in progress, quitting"
+            return false
+        }
+        if(!synchLog) {
+            synchLog = new SynchLog(query: desc.toString().hashCode(),isFinished: false).save()
+        }
+        synchLog.isFinished = false
+        synchLog.save()
         if(!isValidDescriptor(desc))    {
             log.info "Descriptor $desc is invalid"
+            synchLog.isFinished = true
+            synchLog.save(flush:true)
             return false
         }
         if(!CachedConfigParser.isOperationAllowed(desc)) {
             log.info "Operation ${desc.operation} not allowed for class ${desc.entityName}"
+            synchLog.isFinished = true
+            synchLog.save(flush:true)
             return false
         }
         def remoteQuery
         if((remoteQuery = CachedConfigParser.getQueryBuilder(desc)?.generateQuery(desc)) == null)   {
             log.info "RemoteQuery could not be created for ${desc.entityName} ${desc.operation}"
+            synchLog.isFinished = true
+            synchLog.save(flush:true)
             return false
         }
         def connector
         if((connector = CachedConfigParser.getDataSourceConnector(desc)) == null)   {
             log.info "DataSourceConnector could not be loaded for ${desc.entityName} ${desc.operation}"
+            synchLog.isFinished = true
+            synchLog.save(flush:true)
             return false
         }
         List<JSONObject> responses
         if((responses = connector.read(remoteQuery, CachedConfigParser.getAuthenticator(desc))) == null)    {
             log.info "Data could not be read from ${remoteQuery}"
+            synchLog.isFinished = true
+            synchLog.save(flush:true)
             return false
         }
-        return processResponses(responses, desc)
+        if(synchLog.lastResponseHash && (synchLog.lastResponseHash == responses.toString().hashCode().toString()))   {
+            log.info "Remote data weren't changed, quitting"
+            synchLog.isFinished = true
+            synchLog.save(flush:true)
+            return true
+        }
+        synchLog.lastResponseHash = responses.toString().hashCode().toString()
+        synchLog.save(flush:true)
+        boolean processingResult = processResponses(responses, desc)
+        synchLog.isFinished = true
+        synchLog.save(flush:true)
+        return processingResult
     }
 
     static boolean executeInstanceQuery(QueryDescriptor desc, Object instance)   {
+        SynchLog synchLog
+        if(desc.operation == Operation.UPDATE)  {
+            synchLog = SynchLog.findByQuery(desc.toString().hashCode().toString())
+            if(synchLog && !synchLog.isFinished)    {
+                log.info "Query $desc already in progress, quitting"
+                return false
+            }
+            if(!synchLog) {
+                synchLog = new SynchLog(query: desc.toString().hashCode(),isFinished: false).save()
+            }
+            synchLog.isFinished = false
+            synchLog.save()
+        }
         if(!isValidDescriptor(desc))    {
             log.info "Descriptor $desc is invalid"
+            if(desc.operation == Operation.UPDATE)  {
+                synchLog.isFinished = true
+                synchLog.save(flush:true)
+            }
             return false
         }
         if(instance == null)    {
             log.info "Instance is required"
+            if(desc.operation == Operation.UPDATE)  {
+                synchLog.isFinished = true
+                synchLog.save(flush:true)
+            }
             return false
         }
         if(!CachedConfigParser.isOperationAllowed(desc)) {
             log.info "Operation ${desc.operation} not allowed for class ${desc.entityName}"
+            if(desc.operation == Operation.UPDATE)  {
+                synchLog.isFinished = true
+                synchLog.save(flush:true)
+            }
             return false
         }
         def mapping
         if((mapping = CachedConfigParser.getAttributeMap(desc)) == null)    {
             log.info "Mapping for class ${desc.entityName} could not be loaded"
+            if(desc.operation == Operation.UPDATE)  {
+                synchLog.isFinished = true
+                synchLog.save(flush:true)
+            }
             return false
         }
         def remoteQuery
         if((remoteQuery = CachedConfigParser.getQueryBuilder(desc)?.generateQuery(desc)) == null)   {
             log.info "RemoteQuery could not be created for ${desc.entityName} ${desc.operation}"
+            if(desc.operation == Operation.UPDATE)  {
+                synchLog.isFinished = true
+                synchLog.save(flush:true)
+            }
             return false
         }
         remoteQuery.dataJson = [:]
@@ -74,6 +139,10 @@ class QueryExecutor {
         def connector
         if((connector = CachedConfigParser.getDataSourceConnector(desc)) == null)   {
             log.info "DataSourceConnector could not be loaded for ${desc.entityName} ${desc.operation}"
+            if(desc.operation == Operation.UPDATE)  {
+                synchLog.isFinished = true
+                synchLog.save(flush:true)
+            }
             return false
         }
         if(desc.operation == Operation.DELETE)  {
@@ -86,7 +155,25 @@ class QueryExecutor {
         List<JSONObject> responses
         if((responses = connector.write(remoteQuery, CachedConfigParser.getAuthenticator(desc))) == null)    {
             log.info "Data could not be read from ${remoteQuery}"
+            if(desc.operation == Operation.UPDATE)  {
+                synchLog.isFinished = true
+                synchLog.save(flush:true)
+            }
             return false
+        }
+        if(desc.operation == Operation.UPDATE) {
+            if (synchLog.lastResponseHash && (synchLog.lastResponseHash == responses.toString().hashCode().toString())) {
+                log.info "Remote data weren't changed, quitting"
+                synchLog.isFinished = true
+                synchLog.save(flush: true)
+                return true
+            }
+            synchLog.lastResponseHash = responses.toString().hashCode().toString()
+            synchLog.save(flush: true)
+            boolean processingResult = processResponses(responses, desc)
+            synchLog.isFinished = true
+            synchLog.save(flush: true)
+            return processingResult
         }
         return processResponses(responses, desc, instance)
     }
