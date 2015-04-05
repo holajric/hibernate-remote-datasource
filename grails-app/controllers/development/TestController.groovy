@@ -1,7 +1,5 @@
 package development
 
-import synchronisation.JournalLog
-
 class TestController {
 
     def index() {

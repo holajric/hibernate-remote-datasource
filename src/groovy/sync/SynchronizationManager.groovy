@@ -1,8 +1,7 @@
-package development
+package sync
 
 import groovy.util.logging.Log4j
 import query.Operation
-import synchronisation.JournalLog
 
 /**
  * Created by richard on 31.3.15.
@@ -31,7 +30,12 @@ class SynchronizationManager {
             log.info "You can not run transaction without any action to run"
             return false
         }
-        def journalLog = new JournalLog(entity: className, instanceId: id ?: 0, operation: operation, isFinished: false)
+        JournalLog journalLog = null
+        if(id && id!=0)
+            journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(className, id, operation)
+        if(journalLog == null)
+            journalLog = new JournalLog(entity: className, instanceId: id ?: 0, operation: operation)
+        journalLog.isFinished = false
         return runTransaction(journalLog, action)
     }
 
@@ -40,16 +44,22 @@ class SynchronizationManager {
             log.info "You can not run transaction without any action to run"
             return false
         }
-        def journalLog = new JournalLog(entity: instance.class.name, instanceId: instance?.id ?: 0, operation: operation, isFinished: false)
+        JournalLog journalLog = null
+        if(instance?.id)
+            journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instance.class.name, instance?.id, operation)
+        if(journalLog == null)
+            journalLog = new JournalLog(entity: instance.class.name, instanceId: instance?.id ?: 0, operation: operation)
+        journalLog.isFinished = false
         return runTransaction(journalLog, action, instance)
     }
 
     private static boolean runTransaction(JournalLog journalLog, action, instance = null) {
-        journalLog.save()
+        journalLog.save(failOnError: true)
         if (!action()) {
             log.info "Action wasn't sucessful, transaction ends"
             return false
         }
+        journalLog = JournalLog.get(journalLog.id)
         if(instance)
             journalLog.instanceId = instance?.id
         journalLog.isFinished = true

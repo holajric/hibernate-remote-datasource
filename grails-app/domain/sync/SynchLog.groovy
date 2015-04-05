@@ -1,4 +1,4 @@
-package synchronisation
+package sync
 
 class SynchLog {
     String query

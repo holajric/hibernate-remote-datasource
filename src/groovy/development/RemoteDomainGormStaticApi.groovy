@@ -1,8 +1,6 @@
 package development
 
-import grails.transaction.Transactional
 import groovy.util.logging.Log4j
-import org.codehaus.groovy.grails.commons.DefaultGrailsDomainClass
 import org.grails.datastore.gorm.finders.FinderMethod
 import org.springframework.transaction.PlatformTransactionManager
 import groovy.transform.CompileStatic
@@ -12,7 +10,7 @@ import org.codehaus.groovy.grails.orm.hibernate.HibernateDatastore
 import parsers.calling.CallingParser
 import parsers.config.CachedConfigParser
 import query.Operation
-import synchronisation.JournalLog
+import sync.SynchronizationManager
 
 /**
  * Created by richard on 1.3.15.

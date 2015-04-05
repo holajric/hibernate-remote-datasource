@@ -1,4 +1,4 @@
-package synchronisation
+package sync
 
 import grails.test.mixin.TestFor
 import spock.lang.Specification

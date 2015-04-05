@@ -5,10 +5,11 @@ import groovy.transform.TypeCheckingMode
 import groovy.util.logging.Log4j
 import org.codehaus.groovy.grails.orm.hibernate.HibernateGormInstanceApi
 import org.codehaus.groovy.grails.orm.hibernate.HibernateDatastore
-import org.grails.datastore.gorm.finders.FinderMethod
 import parsers.calling.CallingParser
 import parsers.config.CachedConfigParser
 import query.Operation
+import sync.SynchronizationManager
+import org.grails.datastore.gorm.finders.FinderMethod
 
 /**
  * Created by richard on 1.3.15.

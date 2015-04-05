@@ -1,14 +1,17 @@
 package development
 
 import grails.transaction.Transactional
-import grails.converters.JSON
 import groovy.util.logging.Log4j
 import org.codehaus.groovy.grails.web.json.JSONObject
 import parsers.config.CachedConfigParser
 import query.QueryDescriptor
 import query.Operation
-import synchronisation.JournalLog
-import synchronisation.SynchLog
+import query.builder.RemoteQuery
+import sync.MergingManager
+import sync.MergingStrategy
+import sync.SynchronizationManager
+import sync.JournalLog
+import sync.SynchLog
 
 @Log4j
 @Transactional
@@ -51,8 +54,7 @@ class QueryExecutor {
             synchLog.save(flush:true)
             return false
         }
-        println connector.read(CachedConfigParser.getQueryBuilder(desc)?.generateHashQuery(desc))?.first()?."hash"
-        println synchLog.lastResponseHash
+
         if(synchLog.lastResponseHash && (connector.read(CachedConfigParser.getQueryBuilder(desc)?.generateHashQuery(desc))?.first()?."hash" == synchLog.lastResponseHash)) {
             log.info "Remote data weren't changed, quitting"
             synchLog.isFinished = true
@@ -66,8 +68,7 @@ class QueryExecutor {
             synchLog.save(flush:true)
             return false
         }
-        /*println responses.toString().hashCode().toString()
-        println synchLog.lastResponseHash*/
+
         if(synchLog.lastResponseHash && (synchLog.lastResponseHash == responses.toString().hashCode().toString()))   {
             log.info "Remote data weren't changed, quitting"
             synchLog.isFinished = true
@@ -241,7 +242,15 @@ class QueryExecutor {
                 }
                 if(!JournalLog.countByEntityAndInstanceIdAndIsFinished(desc.entityName, response[mapping["id"]], false)) {
                     if(!SynchronizationManager.withTransaction(instanceTemp.class.name, response[mapping["id"]], desc.operation) {
-                        if(!buildInstance(mapping, response, instanceTemp)) {
+                        //Add instance check too
+                        JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, response[mapping["id"]], desc.operation)
+                        if(journalLog.lastRemoteHash == response.toString().hashCode().toString())  {
+                            log.info "Up to date, skipping"
+                            return true
+                        }
+                        journalLog.lastRemoteHash = response.toString().hashCode().toString()
+                        journalLog.save(flush: true)
+                        if(!buildInstance(mapping, response, instanceTemp, desc)) {
                             log.info "Instance ${instanceTemp} could not be builded from response ${response}"
                             return false
                         }
@@ -251,9 +260,17 @@ class QueryExecutor {
                         return false
                     }
                 }   else    {
-                    if(!buildInstance(mapping, response, instanceTemp)) {
-                        log.info "Instance ${instanceTemp} could not be builded from response ${response}"
-                        return false
+                    //Add instance check too
+                    JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, response[mapping["id"]], desc.operation)
+                    if(journalLog.lastRemoteHash == response.toString().hashCode().toString())  {
+                        log.info "Up to date, skipping"
+                    }   else {
+                        journalLog.lastRemoteHash = response.toString().hashCode().toString()
+                        journalLog.save(flush: true)
+                        if (!buildInstance(mapping, response, instanceTemp, desc)) {
+                            log.info "Instance ${instanceTemp} could not be builded from response ${response}"
+                            return false
+                        }
                     }
                 }
             }
@@ -262,21 +279,38 @@ class QueryExecutor {
         return true
     }
 
-    private static boolean buildInstance(mapping, response, instanceTemp) {
+    private static boolean buildInstance(mapping, response, instanceTemp, QueryDescriptor desc) {
         if(instanceTemp == null)    {
             log.info "Target instance is required"
             return false
         }
-        mapping.each {
-            try {
-                if (response["${it.value}"]) {
-                    instanceTemp?."${it.key}" = response["${it.value}"]
-                } else {
-                    log.info "Response for attribute ${it.key} mapped by ${it.value} empty, skipping"
+        def oldResponse = response
+        //TODO: load strategy from config
+        if(!MergingManager.merge(instanceTemp, response, mapping, MergingStrategy.FORCE_REMOTE))    {
+            log.info "Merge unsucessful"
+            return false
+        }
+        if(oldResponse != response) {
+            RemoteQuery query
+            Operation originalOperation = desc.operation
+            desc.operation = oldResponse?.id ? Operation.UPDATE : Operation.CREATE
+            if(CachedConfigParser.isOperationAllowed(desc)) {
+                JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, response[mapping["id"]], desc.operation)
+                if((query = CachedConfigParser.getQueryBuilder(desc)?.generateQuery(desc)) == null)    {
+                    log.info "Query for $desc could not be generated"
+                    desc.operation = originalOperation
+                    return false
                 }
-            } catch(MissingPropertyException ex)    {
-                log.info "Attribute ${it.key} od ${instanceTemp} not found, skipping"
+                if((CachedConfigParser.getDataSourceConnector(desc)?.write(query, response)) == null)   {
+                    log.info "$query with data: $response wasn't sucesful"
+                    desc.operation = originalOperation
+                    return false
+                }
+                journalLog.lastRemoteHash = response.toString().hashCode().toString()
+                journalLog.save(flush: true)
             }
+
+            desc.operation = originalOperation
         }
         try {
             instanceTemp.validate()
