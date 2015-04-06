@@ -32,7 +32,7 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
                 return true
             }) {
                 log.info "Transaction wasn't finished succesfully"
-                return false
+                //return null
             }
         }
 

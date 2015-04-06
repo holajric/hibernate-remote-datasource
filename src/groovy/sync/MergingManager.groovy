@@ -15,7 +15,9 @@ class MergingManager {
         }
         mergingMethod = mergingMethod.replaceAll(/_\w/){ it[1].toUpperCase() }
         try {
-            "$mergingMethod"(local, remote, mapping)
+            mapping.each {
+                "$mergingMethod"(local, remote, it.key , it.value)
+            }
             return true
         } catch(MissingMethodException ex)  {
             log.info "Invalid merging method $mergingMethod"
@@ -23,34 +25,30 @@ class MergingManager {
         }
     }
 
-    private static void forceRemote(local, remote, mapping)    {
-        mapping.each {
-            try {
-                if (remote["${it.value}"]) {
-                    local?."${it.key}" = remote["${it.value}"]
-                } else {
-                    log.info "Response for attribute ${it.key} mapped by ${it.value} empty, skipping"
-                }
-            } catch(MissingPropertyException ex)    {
-                log.info "Attribute ${it.key} of ${local} not found, skipping"
+    private static void forceRemote(local, remote, String localAttr, String remoteAttr)    {
+        try {
+            if (remote["$remoteAttr"]) {
+                local?."$localAttr" = remote["$remoteAttr"]
+            } else {
+                log.info "Response $remoteAttr for attribute $localAttr is empty, skipping"
             }
+        } catch(MissingPropertyException ex)    {
+            log.info "Attribute ${localAttr} of ${local} not found, skipping"
         }
     }
 
-    private static void forceLocal(local, remote, mapping)    {
-        mapping.each {
-            try {
-                remote["${it.value}"]  = local?."${it.key}"
-            } catch(MissingPropertyException ex)    {
-                log.info "Attribute ${it.key} of ${local} not found, skipping"
-            }
+    private static void forceLocal(local, remote, String localAttr, String remoteAttr)    {
+        try {
+            remote["$remoteAttr"]  = local?."$localAttr"
+        } catch(MissingPropertyException ex)    {
+            log.info "Attribute ${localAttr} of ${local} not found, skipping"
         }
     }
 
-    private static void preferLocal(local, remote, mapping)    {
+    private static void preferLocal(local, remote, String localAttr, String remoteAttr)    {
 
     }
-    private static void preferRemote(local, remote, mapping)    {
+    private static void preferRemote(local, remote, String localAttr, String remoteAttr)    {
 
     }
 

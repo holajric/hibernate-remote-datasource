@@ -244,12 +244,15 @@ class QueryExecutor {
                     if(!SynchronizationManager.withTransaction(instanceTemp.class.name, response[mapping["id"]], desc.operation) {
                         //Add instance check too
                         JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, response[mapping["id"]], desc.operation)
-                        if(journalLog.lastRemoteHash == response.toString().hashCode().toString())  {
+                        if(journalLog.lastRemoteHash == response.toString().hashCode().toString() && journalLog.lastInstanceHash == instanceTemp.hashCode().toString())  {
                             log.info "Up to date, skipping"
                             return true
                         }
                         journalLog.lastRemoteHash = response.toString().hashCode().toString()
+                        journalLog.lastInstanceHash = instanceTemp.hashCode().toString()
                         journalLog.save(flush: true)
+                        println "$journalLog.lastRemoteHash"
+                        println "$journalLog.lastInstanceHash"
                         if(!buildInstance(mapping, response, instanceTemp, desc)) {
                             log.info "Instance ${instanceTemp} could not be builded from response ${response}"
                             return false
@@ -260,13 +263,15 @@ class QueryExecutor {
                         return false
                     }
                 }   else    {
-                    //Add instance check too
                     JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, response[mapping["id"]], desc.operation)
-                    if(journalLog.lastRemoteHash == response.toString().hashCode().toString())  {
+                    if(journalLog.lastRemoteHash == response.toString().hashCode().toString()  && journalLog.lastInstanceHash == instanceTemp.hashCode().toString())  {
                         log.info "Up to date, skipping"
                     }   else {
                         journalLog.lastRemoteHash = response.toString().hashCode().toString()
+                        journalLog.lastInstanceHash = instanceTemp.hashCode().toString()
                         journalLog.save(flush: true)
+                        println "$journalLog.lastRemoteHash"
+                        println "$journalLog.lastInstanceHash"
                         if (!buildInstance(mapping, response, instanceTemp, desc)) {
                             log.info "Instance ${instanceTemp} could not be builded from response ${response}"
                             return false
@@ -307,6 +312,9 @@ class QueryExecutor {
                     return false
                 }
                 journalLog.lastRemoteHash = response.toString().hashCode().toString()
+                journalLog.lastInstanceHash = instanceTemp.hashCode().toString()
+                println "response changed $journalLog.lastRemoteHash"
+                println "instance changed $journalLog.lastInstanceHash"
                 journalLog.save(flush: true)
             }
 
