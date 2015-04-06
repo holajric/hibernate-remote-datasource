@@ -12,7 +12,7 @@ class TestController {
         println Test.list(sort: "id", order: 'asc')*.name
         t.name = "AHOJ2"
         t.save()
-        t = Test.get(2)*
+        t = Test.get(2)
         println Test.list(sort: "id", order: 'asc')*.name
         println Test.list(sort: "id", order: 'asc')*.name
         t?.delete()
