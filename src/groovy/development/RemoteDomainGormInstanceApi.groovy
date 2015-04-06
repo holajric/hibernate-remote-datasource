@@ -38,8 +38,7 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
             boolean isNew = (instance?.id == null)
             synchronize(isNew ? "create" : "update", instance)
         }
-        def res = super.save(instance)
-        return res
+        super.save(instance)
     }
 
     public D save(D instance, boolean validate) {

@@ -217,6 +217,7 @@ class QueryExecutor {
             log.info "Mapping for class ${desc.entityName} could not be loaded"
             return false
         }
+        println mapping
         if(!mapping["id"])    {
             mapping["id"] = "id"
         }
@@ -251,8 +252,6 @@ class QueryExecutor {
                         journalLog.lastRemoteHash = response.toString().hashCode().toString()
                         journalLog.lastInstanceHash = instanceTemp.hashCode().toString()
                         journalLog.save(flush: true)
-                        println "$journalLog.lastRemoteHash"
-                        println "$journalLog.lastInstanceHash"
                         if(!buildInstance(mapping, response, instanceTemp, desc)) {
                             log.info "Instance ${instanceTemp} could not be builded from response ${response}"
                             return false
@@ -270,8 +269,6 @@ class QueryExecutor {
                         journalLog.lastRemoteHash = response.toString().hashCode().toString()
                         journalLog.lastInstanceHash = instanceTemp.hashCode().toString()
                         journalLog.save(flush: true)
-                        println "$journalLog.lastRemoteHash"
-                        println "$journalLog.lastInstanceHash"
                         if (!buildInstance(mapping, response, instanceTemp, desc)) {
                             log.info "Instance ${instanceTemp} could not be builded from response ${response}"
                             return false
@@ -289,10 +286,20 @@ class QueryExecutor {
             log.info "Target instance is required"
             return false
         }
+        JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, response[mapping["id"]], desc.operation)
         def oldResponse = response
-        //TODO: load strategy from config
-        if(!MergingManager.merge(instanceTemp, response, mapping, MergingStrategy.FORCE_REMOTE))    {
+        def oldAttrs = journalLog.lastAttrHashes
+        def oldRemoteAttrs = journalLog.lastRemoteAttrHashes
+        def operation
+        if((operation = CachedConfigParser.getQueryOperation(desc)) == null) {
+            log.info "Operation configuration for ${desc.entityName} ${desc.operation} could not be loaded"
+            return null
+        }
+        if(!MergingManager.merge(instanceTemp, response, mapping, operation["mergingStrategy"]?:MergingStrategy.PREFER_REMOTE, desc))    {
             log.info "Merge unsucessful"
+            journalLog.lastAttrHashes = oldAttrs
+            journalLog.lastRemoteAttrHashes = oldRemoteAttrs
+            journalLog.save(flush:true)
             return false
         }
         if(oldResponse != response) {
@@ -300,24 +307,30 @@ class QueryExecutor {
             Operation originalOperation = desc.operation
             desc.operation = oldResponse?.id ? Operation.UPDATE : Operation.CREATE
             if(CachedConfigParser.isOperationAllowed(desc)) {
-                JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, response[mapping["id"]], desc.operation)
                 if((query = CachedConfigParser.getQueryBuilder(desc)?.generateQuery(desc)) == null)    {
                     log.info "Query for $desc could not be generated"
                     desc.operation = originalOperation
+                    journalLog.lastAttrHashes = oldAttrs
+                    journalLog.lastRemoteAttrHashes = oldRemoteAttrs
+                    journalLog.save(flush:true)
                     return false
                 }
                 if((CachedConfigParser.getDataSourceConnector(desc)?.write(query, response)) == null)   {
                     log.info "$query with data: $response wasn't sucesful"
                     desc.operation = originalOperation
+                    journalLog.lastAttrHashes = oldAttrs
+                    journalLog.lastRemoteAttrHashes = oldRemoteAttrs
+                    journalLog.save(flush:true)
                     return false
                 }
                 journalLog.lastRemoteHash = response.toString().hashCode().toString()
                 journalLog.lastInstanceHash = instanceTemp.hashCode().toString()
-                println "response changed $journalLog.lastRemoteHash"
-                println "instance changed $journalLog.lastInstanceHash"
                 journalLog.save(flush: true)
+            } else {
+                journalLog.lastAttrHashes = oldAttrs
+                journalLog.lastRemoteAttrHashes = oldRemoteAttrs
+                journalLog.save(flush:true)
             }
-
             desc.operation = originalOperation
         }
         try {

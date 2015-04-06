@@ -40,6 +40,13 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
     }
 
     @Override
+    List<D> getAll() {
+        if(CachedConfigParser.isRemote(persistentClass))
+            synchronize("findAll", [])
+        return super.get(id)
+    }
+
+    @Override
     List<D> list(Map params) {
         if(CachedConfigParser.isRemote(persistentClass))
             synchronize("findAll", [])

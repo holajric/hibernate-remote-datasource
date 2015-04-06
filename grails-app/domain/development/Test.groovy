@@ -24,12 +24,12 @@ class Test {
                     "max": "limit"
             ],*/
             //"supportedParams": ["max"],
-            "local": ["test","number"],
+            "local": ["test", "number"],
             //"authetication": "Token",
             /*"authenticationParams": [
                 "token": "asdasa4a5sd45qcyx5a4sd5"
             ],*/
-            //"allowed": [ Operation.READ, Operation.CREATE, Operation.UPDATE, Operation.DELETE ],
+            "allowed": [ Operation.READ/*, Operation.CREATE, Operation.UPDATE, Operation.DELETE*/ ],
             "operations":[
                     (Operation.READ):[
                         "endpoint": "remoteTest/show/[:id]",
@@ -52,4 +52,8 @@ class Test {
         test nullable: true
         number nullable: true
     };
+
+    public String toString()    {
+        "class Test ${this.id} ${this.name} ${this.number} ${this.test}"
+    }
 };

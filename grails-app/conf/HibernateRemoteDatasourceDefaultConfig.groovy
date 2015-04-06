@@ -1,3 +1,5 @@
+import sync.MergingStrategy
+
 grails {
     plugins {
         hibernateRemoteDatasource {
@@ -6,6 +8,7 @@ grails {
                 queryType = "Rest"
                 generalDefault  {
                     endpoint = "[:entityName|capitalize:false]/[:operation|lowerCase]/[:id]"
+                    mergingStrategy = MergingStrategy.PREFER_LOCAL
                 }
                 operations  {
                     READ {
