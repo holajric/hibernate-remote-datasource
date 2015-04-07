@@ -5,6 +5,8 @@ import grails.test.mixin.support.GrailsUnitTestMixin
 import spock.lang.Specification
 import spock.lang.Unroll
 
+import java.beans.Introspector
+
 /**
  * See the API for {@link grails.test.mixin.support.GrailsUnitTestMixin} for usage instructions
  */
@@ -28,15 +30,15 @@ class CapitalizeFormatterSpec extends Specification {
         assert result == expectedResult
         where:
         givenInput      | expectedResult  | caseSwitchParam
-        null            | ""              | true
-        ""              | ""              | false
-        10              | ""              | true
+        null            | ""              | "true"
+        ""              | ""              | "false"
+        10              | ""              | "true"
         "BIG"           | "BIG"           | ""
-        "Capital"       | "Capital"       | null
-        "small"         | "Small"         | true
-        "More WORDS"    | "More WORDS"    | true
-        "Capital"       | "capital"       | false
-        "small"         | "small"         | false
-        "More WORDS"    | "more WORDS"    | false
+        "Capital"       | "Capital"       | "null"
+        "small"         | "Small"         | "true"
+        "More WORDS"    | "More WORDS"    | "true"
+        "Capital"       | "capital"       | "false"
+        "small"         | "small"         | "false"
+        "More WORDS"    | "more WORDS"    | "false"
     }
 }

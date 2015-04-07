@@ -27,9 +27,24 @@ class DateFormatterSpec extends Specification {
         expect:
         assert result == expectedResult
         where:
-        givenInput                      | expectedResult  | format
+        givenInput                      | expectedResult                 | format
         new Date().copyWith(year: 2014,
                 month: Calendar.OCTOBER,
-                dayOfMonth: 2)          | "2014-10-2"     | "Y-M-d"
+                dayOfMonth: 2)          | "2014-10-2"                    | "Y-M-d"
+        new Date().copyWith(year: 2014,
+                month: Calendar.OCTOBER,
+                dayOfMonth: 2)          | "2. 10. 2014"                  | "d. M. YYYY"
+        ""                              | ""                             | "Y-M-d"
+        new Date().copyWith(year: 2014,
+                month: Calendar.OCTOBER,
+                dayOfMonth: 2)          | new Date().copyWith(year: 2014,
+                                          month: Calendar.OCTOBER,
+                                          dayOfMonth: 2).toString()      | new Object()
+        new Date().copyWith(year: 2014,
+                month: Calendar.OCTOBER,
+                dayOfMonth: 2)          | new Date().copyWith(year: 2014,
+                                          month: Calendar.OCTOBER,
+                                          dayOfMonth: 2).toString()      | ""
+        10                              | "10"                           | "Y-m-d"
     }
 }
