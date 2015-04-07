@@ -1,7 +1,6 @@
 package auth
 
-import query.Operation
-import query.builder.RemoteQuery
+import groovy.org.grails.datastore.remote.hibernate.query.builder.RemoteQuery
 
 /**
  * Created by richard on 1.4.15.

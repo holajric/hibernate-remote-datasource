@@ -1,10 +1,9 @@
-import development.RemoteDomainGormEnhancer
+import groovy.org.grails.datastore.remote.hibernate.RemoteDomainGormEnhancer
 import grails.util.Environment
 import org.codehaus.groovy.grails.commons.GrailsApplication
 import org.grails.datastore.mapping.transactions.DatastoreTransactionManager
 import org.codehaus.groovy.grails.orm.hibernate.HibernateDatastore
-import parsers.calling.GormApiParser
-import parsers.calling.GormApiParser
+import groovy.org.grails.datastore.remote.hibernate.parsers.calling.GormApiParser
 
 class HibernateRemoteDatasourceGrailsPlugin {
     // the plugin version

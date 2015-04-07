@@ -1,8 +1,8 @@
 package auth
 
-import parsers.config.CachedConfigParser
-import query.Operation
-import query.builder.RemoteQuery
+import groovy.org.grails.datastore.remote.hibernate.parsers.config.CachedConfigParser
+import groovy.org.grails.datastore.remote.hibernate.query.Operation
+import groovy.org.grails.datastore.remote.hibernate.query.builder.RemoteQuery
 
 /**
  * Created by richard on 1.4.15.

@@ -1,6 +1,6 @@
 package development
 
-import query.Operation
+import groovy.org.grails.datastore.remote.hibernate.query.Operation
 
 class Test {
     String name

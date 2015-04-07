@@ -1,4 +1,4 @@
-import sync.MergingStrategy
+import groovy.org.grails.datastore.remote.hibernate.sync.MergingStrategy
 
 grails {
     plugins {
