@@ -29,7 +29,7 @@ class QueryExecutor {
         synchLog.isFinished = false
         synchLog.save()
         if(!isValidDescriptor(desc))    {
-            log.info "Descriptor $desc is invalid"
+            log.error "Descriptor $desc is invalid"
             synchLog.isFinished = true
             synchLog.save(flush:true)
             return false
@@ -42,14 +42,14 @@ class QueryExecutor {
         }
         def remoteQuery
         if((remoteQuery = CachedConfigParser.getQueryBuilder(desc)?.generateQuery(desc)) == null)   {
-            log.info "RemoteQuery could not be created for ${desc.entityName} ${desc.operation}"
+            log.error "RemoteQuery could not be created for ${desc.entityName} ${desc.operation}"
             synchLog.isFinished = true
             synchLog.save(flush:true)
             return false
         }
         def connector
         if((connector = CachedConfigParser.getDataSourceConnector(desc)) == null)   {
-            log.info "DataSourceConnector could not be loaded for ${desc.entityName} ${desc.operation}"
+            log.error "DataSourceConnector could not be loaded for ${desc.entityName} ${desc.operation}"
             synchLog.isFinished = true
             synchLog.save(flush:true)
             return false
@@ -63,7 +63,7 @@ class QueryExecutor {
         }
         List<JSONObject> responses
         if((responses = connector.read(remoteQuery, CachedConfigParser.getAuthenticator(desc))) == null)    {
-            log.info "Data could not be read from ${remoteQuery}"
+            log.error "Data could not be read from ${remoteQuery}"
             synchLog.isFinished = true
             synchLog.save(flush:true)
             return false
@@ -98,7 +98,7 @@ class QueryExecutor {
             synchLog.save()
         }
         if(!isValidDescriptor(desc))    {
-            log.info "Descriptor $desc is invalid"
+            log.error "Descriptor $desc is invalid"
             if(desc.operation == Operation.UPDATE)  {
                 synchLog.isFinished = true
                 synchLog.save(flush:true)
@@ -106,7 +106,7 @@ class QueryExecutor {
             return false
         }
         if(instance == null)    {
-            log.info "Instance is required"
+            log.error "Instance is required"
             if(desc.operation == Operation.UPDATE)  {
                 synchLog.isFinished = true
                 synchLog.save(flush:true)
@@ -123,7 +123,7 @@ class QueryExecutor {
         }
         def mapping
         if((mapping = CachedConfigParser.getAttributeMap(desc)) == null)    {
-            log.info "Mapping for class ${desc.entityName} could not be loaded"
+            log.error "Mapping for class ${desc.entityName} could not be loaded"
             if(desc.operation == Operation.UPDATE)  {
                 synchLog.isFinished = true
                 synchLog.save(flush:true)
@@ -132,7 +132,7 @@ class QueryExecutor {
         }
         def remoteQuery
         if((remoteQuery = CachedConfigParser.getQueryBuilder(desc)?.generateQuery(desc)) == null)   {
-            log.info "RemoteQuery could not be created for ${desc.entityName} ${desc.operation}"
+            log.error "RemoteQuery could not be created for ${desc.entityName} ${desc.operation}"
             if(desc.operation == Operation.UPDATE)  {
                 synchLog.isFinished = true
                 synchLog.save(flush:true)
@@ -149,7 +149,7 @@ class QueryExecutor {
         }
         def connector
         if((connector = CachedConfigParser.getDataSourceConnector(desc)) == null)   {
-            log.info "DataSourceConnector could not be loaded for ${desc.entityName} ${desc.operation}"
+            log.error "DataSourceConnector could not be loaded for ${desc.entityName} ${desc.operation}"
             if(desc.operation == Operation.UPDATE)  {
                 synchLog.isFinished = true
                 synchLog.save(flush:true)
@@ -158,7 +158,7 @@ class QueryExecutor {
         }
         if(desc.operation == Operation.DELETE)  {
             if(connector.doAction(remoteQuery, CachedConfigParser.getAuthenticator(desc)) == false) {
-                log.info "Action could not be done from ${remoteQuery}"
+                log.error "Action could not be done from ${remoteQuery}"
                 return false
             }
             return true
@@ -173,7 +173,7 @@ class QueryExecutor {
         }
         List<JSONObject> responses
         if((responses = connector.write(remoteQuery, CachedConfigParser.getAuthenticator(desc))) == null)    {
-            log.info "Data could not be read from ${remoteQuery}"
+            log.error "Data could not be read from ${remoteQuery}"
             if(desc.operation == Operation.UPDATE)  {
                 synchLog.isFinished = true
                 synchLog.save(flush:true)
@@ -199,12 +199,12 @@ class QueryExecutor {
 
     private static boolean isValidDescriptor(QueryDescriptor desc)    {
         if(!desc.entityName || desc.entityName.empty)   {
-            log.info "Descriptor entityName is required"
+            log.error "Descriptor entityName is required"
             return false
         }
 
         if(!desc.operation)    {
-            log.info "Descriptor operation is required"
+            log.error "Descriptor operation is required"
             return false
         }
 
@@ -214,31 +214,30 @@ class QueryExecutor {
     private static boolean processResponses(List<JSONObject> responses, QueryDescriptor desc, instance = null)   {
         def mapping
         if((mapping = CachedConfigParser.getAttributeMap(desc)) == null)    {
-            log.info "Mapping for class ${desc.entityName} could not be loaded"
+            log.error "Mapping for class ${desc.entityName} could not be loaded"
             return false
         }
-        println mapping
         if(!mapping["id"])    {
             mapping["id"] = "id"
         }
         ResponseFilter filter = new ResponseFilter()
         responses.each { response ->
             if(!response[mapping["id"]])    {
-                log.info "There is no id in response, response can not be processed"
+                log.warn "There is no id in response, response can not be processed"
                 return false
             }
             if (filter.isValid(response, desc)) {
                 def instanceTemp
                 try {
                     if((instanceTemp = instance ?: Class.forName(desc.entityName)?.directGet(response[mapping["id"]?:"id"]) ?: Class.forName(desc.entityName).newInstance()) == null) {
-                        log.info "Instance could not be found or created"
+                        log.error "Instance could not be found or created"
                         return false
                     }
                 }   catch(ClassNotFoundException ex)    {
-                    log.info "Class ${desc.entityName} could not be found."
+                    log.error "Class ${desc.entityName} could not be found."
                     return false
                 }   catch(MissingMethodException ex)    {
-                    log.info "Class ${desc.entityName} is not domain."
+                    log.error "Class ${desc.entityName} is not domain."
                     return false
                 }
                 if(!JournalLog.countByEntityAndInstanceIdAndIsFinished(desc.entityName, response[mapping["id"]], false)) {
@@ -253,12 +252,12 @@ class QueryExecutor {
                         journalLog.lastInstanceHash = instanceTemp.hashCode().toString()
                         journalLog.save(flush: true)
                         if(!buildInstance(mapping, response, instanceTemp, desc)) {
-                            log.info "Instance ${instanceTemp} could not be builded from response ${response}"
+                            log.error "Instance ${instanceTemp} could not be builded from response ${response}"
                             return false
                         }
                         return true
                     })  {
-                        log.info "Transaction wasn't finished succesfully"
+                        log.error "Transaction wasn't finished succesfully"
                         return false
                     }
                 }   else    {
@@ -270,7 +269,7 @@ class QueryExecutor {
                         journalLog.lastInstanceHash = instanceTemp.hashCode().toString()
                         journalLog.save(flush: true)
                         if (!buildInstance(mapping, response, instanceTemp, desc)) {
-                            log.info "Instance ${instanceTemp} could not be builded from response ${response}"
+                            log.error "Instance ${instanceTemp} could not be builded from response ${response}"
                             return false
                         }
                     }
@@ -283,7 +282,7 @@ class QueryExecutor {
 
     private static boolean buildInstance(mapping, response, instanceTemp, QueryDescriptor desc) {
         if(instanceTemp == null)    {
-            log.info "Target instance is required"
+            log.error "Target instance is required"
             return false
         }
         JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, response[mapping["id"]], desc.operation)
@@ -292,11 +291,11 @@ class QueryExecutor {
         def oldRemoteAttrs = journalLog.lastRemoteAttrHashes
         def operation
         if((operation = CachedConfigParser.getQueryOperation(desc)) == null) {
-            log.info "Operation configuration for ${desc.entityName} ${desc.operation} could not be loaded"
+            log.error "Operation configuration for ${desc.entityName} ${desc.operation} could not be loaded"
             return null
         }
         if(!MergingManager.merge(instanceTemp, response, mapping, operation["mergingStrategy"]?:MergingStrategy.PREFER_REMOTE, desc))    {
-            log.info "Merge unsucessful"
+            log.warn "Merge unsucessful"
             journalLog.lastAttrHashes = oldAttrs
             journalLog.lastRemoteAttrHashes = oldRemoteAttrs
             journalLog.save(flush:true)
@@ -308,7 +307,7 @@ class QueryExecutor {
             desc.operation = oldResponse?.id ? Operation.UPDATE : Operation.CREATE
             if(CachedConfigParser.isOperationAllowed(desc)) {
                 if((query = CachedConfigParser.getQueryBuilder(desc)?.generateQuery(desc)) == null)    {
-                    log.info "Query for $desc could not be generated"
+                    log.warn "Query for $desc could not be generated"
                     desc.operation = originalOperation
                     journalLog.lastAttrHashes = oldAttrs
                     journalLog.lastRemoteAttrHashes = oldRemoteAttrs
@@ -316,7 +315,7 @@ class QueryExecutor {
                     return false
                 }
                 if((CachedConfigParser.getDataSourceConnector(desc)?.write(query, response)) == null)   {
-                    log.info "$query with data: $response wasn't sucesful"
+                    log.warn "$query with data: $response wasn't sucesful"
                     desc.operation = originalOperation
                     journalLog.lastAttrHashes = oldAttrs
                     journalLog.lastRemoteAttrHashes = oldRemoteAttrs
@@ -336,13 +335,13 @@ class QueryExecutor {
         try {
             instanceTemp.validate()
             if(instanceTemp.hasErrors())   {
-                log.info "Instance could not be saved for following reasons ${instanceTemp.errors}"
+                log.error "Instance could not be saved for following reasons ${instanceTemp.errors}"
                 return false
             }
             instanceTemp.directSave()
             return true
         } catch(MissingMethodException ex)    {
-            log.info "${instanceTemp} is not domain class"
+            log.error "${instanceTemp} is not domain class"
             return false
         }
     }

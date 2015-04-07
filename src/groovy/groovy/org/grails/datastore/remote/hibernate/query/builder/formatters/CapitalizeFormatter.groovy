@@ -11,11 +11,11 @@ import java.beans.Introspector
 class CapitalizeFormatter extends Formatter {
     Object format(Object input, List<Object> params) {
         if(!input)  {
-            log.info "Input not provided returning empty value"
+            log.warn "Input not provided returning empty value"
             return ""
         }
         if(!params[0] || !(params[0] instanceof Boolean))  {
-            log.info "Invalid first parameter has to be true or false, returning unchanged input"
+            log.warn "Invalid first parameter has to be true or false, returning unchanged input"
             return input
         }
         if(params[0] == true)

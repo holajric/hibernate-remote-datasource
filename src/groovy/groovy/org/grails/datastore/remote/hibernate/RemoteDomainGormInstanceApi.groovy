@@ -72,20 +72,20 @@ class RemoteDomainGormInstanceApi<D> extends HibernateGormInstanceApi<D> {
 
     private boolean synchronize(String operation, D instance)    {
         if(!ALLOWED_OPERATIONS.contains(operation))  {
-            log.info "Operation $operation is not allowed"
+            log.warn "Operation $operation is not allowed"
             return false
         }
         def operationLoc = Operation."${operation.toUpperCase()}"
         def result = SynchronizationManager.withCheckedTransaction(instance, operationLoc)  {
             def queryDescriptor
             if((queryDescriptor = callingParser.parseInstanceMethod(operation, instance)) == null)  {
-                log.info "Query descriptor for $operation of $instance  could not be generated"
+                log.error "Query descriptor for $operation of $instance  could not be generated"
                 return false
             }
             return queryExecutor.executeInstanceQuery(queryDescriptor, instance)
         }
         if(!result)  {
-            log.info "Transaction wasn't finished succesfully"
+            log.error "Transaction wasn't finished succesfully"
             return false
         }
         return result

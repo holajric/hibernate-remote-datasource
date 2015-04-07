@@ -27,7 +27,7 @@ class SynchronizationManager {
 
     public static boolean withTransaction(String className, id, Operation operation, Closure action) {
         if(action == null)  {
-            log.info "You can not run transaction without any action to run"
+            log.error "You can not run transaction without any action to run"
             return false
         }
         JournalLog journalLog = null
@@ -41,7 +41,7 @@ class SynchronizationManager {
 
     public static boolean withTransaction(instance, Operation operation, Closure action) {
         if(action == null)  {
-            log.info "You can not run transaction without any action to run"
+            log.error "You can not run transaction without any action to run"
             return false
         }
         JournalLog journalLog = null
@@ -56,7 +56,7 @@ class SynchronizationManager {
     private static boolean runTransaction(JournalLog journalLog, action, instance = null) {
         journalLog.save(failOnError: true)
         if (!action()) {
-            log.info "Action wasn't sucessful, transaction ends"
+            log.error "Action wasn't sucessful, transaction ends"
             return false
         }
         journalLog = JournalLog.get(journalLog.id)

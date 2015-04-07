@@ -21,22 +21,22 @@ class RestQueryBuilder implements QueryBuilder {
 
     RestRemoteQuery generateQuery(QueryDescriptor desc, String prefix = "") {
         if(!desc.entityName || desc.entityName.empty)   {
-            log.info "Descriptor entityName is required"
+            log.error "Descriptor entityName is required"
             return null
         }
         String tempUrl = CachedConfigParser.mapping[desc.entityName]["baseUrl"]
         if(!CachedConfigParser.mapping[desc.entityName]["baseUrl"])   {
-            log.info "Base URL is required"
+            log.error "Base URL is required"
             return null
         }
         def operation
         if((operation = CachedConfigParser.getQueryOperation(desc)) == null) {
-            log.info "Operation configuration for ${desc.entityName} ${desc.operation} could not be loaded"
+            log.error "Operation configuration for ${desc.entityName} ${desc.operation} could not be loaded"
             return null
         }
         String endpoint = prefix.empty ? "endpoint" : prefix + "endpoint".capitalize()
         if(!operation[endpoint])  {
-            log.info "Operation $prefix endpoint is required"
+            log.error "Operation $prefix endpoint is required"
             return null
         }
         if (isSingleQuery(desc, operation[endpoint])) {
@@ -45,9 +45,8 @@ class RestQueryBuilder implements QueryBuilder {
         }   else    {
             tempUrl+= generateBatchQuery(desc, operation, prefix)
         }
-        println "${desc.operation} ${operation["method"]} ${tempUrl}" //TODO: delete this in the end
         if(!operation["method"])    {
-            log.info "Operation method is required"
+            log.error "Operation method is required"
             return null
         }
         return new RestRemoteQuery(method: operation["method"], url: tempUrl)
@@ -69,7 +68,7 @@ class RestQueryBuilder implements QueryBuilder {
         String endpoint = prefix.empty ? "endpoint" : prefix + "endpoint".capitalize()
         String queryEndpoint = prefix.empty ? "queryEndpoint" : prefix + "queryEndpoint".capitalize()
         String tempUrl = operation[queryEndpoint]?: (operation[endpoint])?.replaceAll(/\/\[\:.*\]/, "") ?: {
-            log.info "Operation ${desc.operation} for ${desc.entityName} has no endpoint, empty endpoint will be used"
+            log.warn "Operation ${desc.operation} for ${desc.entityName} has no endpoint, empty endpoint will be used"
             return ""
         }
         boolean first = tempUrl.contains("?")
@@ -118,15 +117,15 @@ class RestQueryBuilder implements QueryBuilder {
 
     boolean isConditionSupported(Condition condition, QueryDescriptor desc)  {
         if(condition.attribute.empty)  {
-            log.info "Condition attribute is required"
+            log.error "Condition attribute is required"
             return false
         }
         if(condition instanceof SimpleCondition && !condition.value)  {
-            log.info "Condition value is required for SimpleCondition"
+            log.error "Condition value is required for SimpleCondition"
             return false
         }
         if(condition instanceof IntervalCondition && (!condition.lowerBound || !condition.upperBound))  {
-            log.info "Condition lowerBound and upperBound are required for IntervalCondition"
+            log.error "Condition lowerBound and upperBound are required for IntervalCondition"
             return false
         }
         //TODO: OPTIONALLY SPLIT CONDITION INTO MORE WITH LOGGING

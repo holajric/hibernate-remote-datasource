@@ -21,11 +21,11 @@ public abstract class Formatter {
                 Formatter formater
                 try {
                     if (!((formater = Class.forName("groovy.org.grails.datastore.remote.hibernate.query.builder.formatters.${formatterStruct[0].capitalize()}Formatter").newInstance()) instanceof Formatter))  {
-                        log.info "Class groovy.org.grails.datastore.remote.hibernate.query.builder.formatters.${formatterStruct[0].capitalize()}Formatter is not instance of groovy.org.grails.datastore.remote.hibernate.query.builder.formatters.Formatter, this formatter will be skipped"
+                        log.warn "Class groovy.org.grails.datastore.remote.hibernate.query.builder.formatters.${formatterStruct[0].capitalize()}Formatter is not instance of groovy.org.grails.datastore.remote.hibernate.query.builder.formatters.Formatter, this formatter will be skipped"
                     }
                     value = formater.format(value, formatterStruct.size > 1 ? formatterStruct[1..-1] : [])
                 }   catch(ClassNotFoundException ex)    {
-                    log.info "Class groovy.org.grails.datastore.remote.hibernate.query.builder.formatters.${formatterStruct[0].capitalize()}Formatter does not exist, this formatter will be skipped"
+                    log.warn "Class groovy.org.grails.datastore.remote.hibernate.query.builder.formatters.${formatterStruct[0].capitalize()}Formatter does not exist, this formatter will be skipped"
                 }
             }
         }

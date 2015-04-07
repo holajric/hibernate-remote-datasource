@@ -49,14 +49,14 @@ class CachedConfigParser {
         if(!isValidDescriptor(desc))
             return null
         if(!mapping[desc.entityName]["sourceType"])   {
-            log.info "DataSourceConnector type for class has to be set"
+            log.error "DataSourceConnector type for class has to be set"
             return null
         }
         if(!dataSourceConnector[desc.entityName])
             try {
                 dataSourceConnector[desc.entityName] = Class.forName("groovy.org.grails.datastore.remote.hibernate.connectors."+mapping[desc.entityName]["sourceType"]+"DataSourceConnector")?.newInstance()
             }   catch(ClassNotFoundException ex)    {
-                log.info "Class groovy.org.grails.datastore.remote.hibernate.connectors."+mapping[desc.entityName]["sourceType"]+"DataSourceConnector does not exist!"
+                log.error "Class groovy.org.grails.datastore.remote.hibernate.connectors."+mapping[desc.entityName]["sourceType"]+"DataSourceConnector does not exist!"
                 return null
             }
         return dataSourceConnector[desc.entityName]
@@ -66,14 +66,14 @@ class CachedConfigParser {
         if(!isValidDescriptor(desc))
             return null
         if(!mapping[desc.entityName]["queryType"])   {
-            log.info "QueryBuilder type for class has to be set"
+            log.error "QueryBuilder type for class has to be set"
             return null
         }
         if(!queryBuilder[desc.entityName])
             try {
                 queryBuilder[desc.entityName] = Class.forName("groovy.org.grails.datastore.remote.hibernate.query.builder."+mapping[desc.entityName]["queryType"]+"QueryBuilder")?.newInstance()
             }   catch(ClassNotFoundException ex)    {
-                log.info "Class groovy.org.grails.datastore.remote.hibernate.query.builder."+mapping[desc.entityName]["queryType"]+"QueryBuilder does not exist!"
+                log.error "Class groovy.org.grails.datastore.remote.hibernate.query.builder."+mapping[desc.entityName]["queryType"]+"QueryBuilder does not exist!"
                 return null
             }
         return queryBuilder[desc.entityName]
@@ -93,7 +93,7 @@ class CachedConfigParser {
             try {
                 authenticator["${desc.entityName} ${desc.operation}}"] = Class.forName("auth.${name}Authenticator")?.newInstance(desc.entityName, desc.operation)
             }   catch(ClassNotFoundException ex)    {
-                log.info "Class auth.${name}Authenticator does not exist!"
+                log.error "Class auth.${name}Authenticator does not exist!"
                 return null
             }
         }
@@ -118,11 +118,11 @@ class CachedConfigParser {
 
     private static boolean isValidDescriptor(QueryDescriptor desc) {
         if (desc.entityName.empty) {
-            log.info "Descriptor entityName is required"
+            log.error "Descriptor entityName is required"
             return false
         }
         if (!desc.operation) {
-            log.info "Descriptor operation is required"
+            log.error "Descriptor operation is required"
             return false
         }
         return true
@@ -139,10 +139,10 @@ class CachedConfigParser {
                         attributeMapping?."$desc.entityName"?."${it.name}" = mapping?."$desc.entityName"?."mapping"?."${it.name}" ?: it.name
                 }
             }   catch(ClassNotFoundException ex)    {
-                log.info "Class ${desc.entityName} does not exist!"
+                log.error "Class ${desc.entityName} does not exist!"
                 return null
             }   catch(GrailsDomainException ex) {
-                log.info "Class ${desc.entityName} is not a domain class!"
+                log.error "Class ${desc.entityName} is not a domain class!"
                 return null
             }
         }
@@ -153,7 +153,7 @@ class CachedConfigParser {
         if(!isValidDescriptor(desc))
             return null
         if(!isOperationAllowed(desc))   {
-            log.info "Operation ${desc.operation} for ${desc.entityName} is not allowed"
+            log.warn "Operation ${desc.operation} for ${desc.entityName} is not allowed"
             return null
         }
 

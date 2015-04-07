@@ -32,7 +32,7 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
                 synchronize("findById", [id])
                 return true
             }) {
-                log.info "Transaction wasn't finished succesfully"
+                log.error "Transaction wasn't finished succesfully"
                 //return null
             }
         }
@@ -95,7 +95,7 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
     boolean synchronize(methodName, args)   {
         def queryDescriptor
         if((queryDescriptor = callingParser.parseFinder(persistentClass.getName(), methodName, args)) == null)  {
-            log.info "Query descriptor for $methodName($args) could not be generated"
+            log.error "Query descriptor for $methodName($args) could not be generated"
             return false
         }
         return QueryExecutor.executeFinderQuery(queryDescriptor)

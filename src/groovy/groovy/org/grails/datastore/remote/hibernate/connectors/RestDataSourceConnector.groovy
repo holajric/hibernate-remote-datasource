@@ -50,20 +50,20 @@ class RestDataSourceConnector implements DataSourceConnector {
 
     private Object sanitizeInput(RemoteQuery query, Authenticator auth = null )  {
         if(!(query instanceof RestRemoteQuery)) {
-            log.info "groovy.org.grails.datastore.remote.hibernate.query $query is not instance of RestRemoteQuery which is required"
+            log.error "groovy.org.grails.datastore.remote.hibernate.query $query is not instance of RestRemoteQuery which is required"
             return false
         }
         if(query.url.empty) {
-            log.info "groovy.org.grails.datastore.remote.hibernate.query can not be empty"
+            log.error "groovy.org.grails.datastore.remote.hibernate.query can not be empty"
             return false
         }
         if(auth && !auth?.authenticate(query)) {
-            log.info "unauthorized for $query"
+            log.error "unauthorized for $query"
             return false
         }
         String methodName = query?.method?.toLowerCase()
         if(!ALLOWED_METHODS.contains(methodName))   {
-            log.info "invalid http method $methodName"
+            log.error "invalid http method $methodName"
             return false
         }
         return methodName
@@ -71,11 +71,11 @@ class RestDataSourceConnector implements DataSourceConnector {
 
     private List<JSONObject> sanitizeResponse(response) {
         if(response?.getStatus()?.toString()[0] == '4')  {
-            log.info "resource not found or not accepted"
+            log.error "resource not found or not accepted"
             return null
         }
         if(response?.getStatus()?.toString()[0] == '5')   {
-            log.info "resource failed with error"
+            log.error "resource failed with error"
         }
         if(!(response instanceof RestResponse))    {
             return null

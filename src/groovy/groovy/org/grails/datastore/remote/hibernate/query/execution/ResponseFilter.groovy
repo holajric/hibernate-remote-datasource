@@ -15,14 +15,14 @@ class ResponseFilter {
         desc?.conditions?.each {
                 String method = underscoreToCamelCase(it.comparator.toString())
                 if(!ALLOWED_METHODS.contains(method))    {
-                    log.info "Method $method not supported skipping"
+                    log.warn "Method $method not supported skipping"
                 }   else if(it.attribute.empty)  {
-                    log.info "Condition attribute is required"
+                    log.warn "Condition attribute is required"
                     return false
                 }   else if(it instanceof IntervalCondition && (!it?.lowerBound || !it?.upperBound))   {
-                    log.info "Condition lowerBound and upperBound are required for IntervalCondition"
+                    log.warn "Condition lowerBound and upperBound are required for IntervalCondition"
                 }   else if(it instanceof SimpleCondition && !it?.value)   {
-                    log.info "Condition value is required for SimpleCondition"
+                    log.warn "Condition value is required for SimpleCondition"
                 } else {
                     try {
                         if (it instanceof IntervalCondition) {
@@ -36,7 +36,7 @@ class ResponseFilter {
                                 return false
                         }
                     } catch(MissingPropertyException ex)   {
-                        log.info "Attribute ${it.attribute} not found for ${instance}"
+                        log.warn "Attribute ${it.attribute} not found for ${instance}"
                     }
                 }
         }

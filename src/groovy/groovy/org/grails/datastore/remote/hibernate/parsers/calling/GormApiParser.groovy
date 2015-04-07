@@ -49,7 +49,7 @@ class GormApiParser implements CallingParser {
         def splitted = finder.replaceFirst(/By/,"<SPLIT>").split(/<SPLIT>/)
         String operation = splitted?.getAt(0)
         if(!ALLOWED_FINDERS.contains(operation)) {
-            log.info "finder $operation is not supported"
+            log.error "finder $operation is not supported"
             return null
         }
         String query = (splitted.size() > 1) ? splitted?.getAt(1) : null
@@ -103,11 +103,11 @@ class GormApiParser implements CallingParser {
 
     QueryDescriptor parseInstanceMethod(String operation, instance) {
         if(instance == null)    {
-            log.info "Instance is required"
+            log.error "Instance is required"
             return null
         }
         if(!ALLOWED_OPERATIONS.contains(operation)) {
-            log.info "Operation $operation is not supported"
+            log.error "Operation $operation is not supported"
             return null
         }
         def queryDesc = new QueryDescriptor(entityName: instance.class.getName())

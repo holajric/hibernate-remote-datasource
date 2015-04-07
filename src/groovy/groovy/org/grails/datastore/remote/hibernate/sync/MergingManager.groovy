@@ -11,7 +11,7 @@ class MergingManager {
     public static boolean merge(local, remote, mapping, MergingStrategy strategy, QueryDescriptor desc)  {
         def mergingMethod = strategy.toString().toLowerCase()
         if(!mergingMethod || mergingMethod.isAllWhitespace()){
-            log.info "Merging method is required"
+            log.error "Merging method is required"
             return false
         }
         mergingMethod = mergingMethod.replaceAll(/_\w/){ it[1].toUpperCase() }
@@ -34,7 +34,7 @@ class MergingManager {
             }
             return true
         } catch(MissingMethodException ex)  {
-            log.info "Invalid merging method $mergingMethod"
+            log.error "Invalid merging method $mergingMethod"
             return false
         }
     }
