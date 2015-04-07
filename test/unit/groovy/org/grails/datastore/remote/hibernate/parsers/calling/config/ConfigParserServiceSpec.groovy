@@ -1,7 +1,7 @@
-package parsers.calling.config
+package groovy.org.grails.datastore.remote.hibernate.parsers.calling.config
 
 import grails.test.mixin.TestFor
-import parsers.config.CachedConfigParser
+import groovy.org.grails.datastore.remote.hibernate.parsers.config.CachedConfigParser
 import spock.lang.Specification
 
 /**

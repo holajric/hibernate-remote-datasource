@@ -6,7 +6,7 @@ import groovy.util.logging.Log4j
 import org.codehaus.groovy.grails.web.json.JSONArray
 import org.codehaus.groovy.grails.web.json.JSONObject
 import groovy.org.grails.datastore.remote.hibernate.query.builder.*
-import auth.Authenticator
+import groovy.org.grails.datastore.remote.hibernate.auth.Authenticator
 /**
  * Created by richard on 18.2.15.
  */
@@ -25,7 +25,7 @@ class RestDataSourceConnector implements DataSourceConnector {
         return (response instanceof RestResponse)
     }
 
-    List<JSONObject> read(RemoteQuery query, auth.Authenticator auth = null)  {
+    List<JSONObject> read(RemoteQuery query, Authenticator auth = null)  {
         def methodName = sanitizeInput(query, auth)
         if(methodName == false)
             return null

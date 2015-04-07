@@ -13,7 +13,7 @@ import groovy.org.grails.datastore.remote.hibernate.query.Operation
 import groovy.org.grails.datastore.remote.hibernate.query.QueryDescriptor
 import groovy.org.grails.datastore.remote.hibernate.query.builder.QueryBuilder
 import org.codehaus.groovy.grails.commons.DefaultGrailsDomainClass
-import auth.Authenticator
+import groovy.org.grails.datastore.remote.hibernate.auth.Authenticator
 import groovy.org.grails.datastore.remote.hibernate.query.builder.formatters.Formatter
 
 @Log4j

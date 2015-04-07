@@ -1,8 +1,8 @@
 package groovy.org.grails.datastore.remote.hibernate.connectors
 
-import org.codehaus.groovy.grails.web.json.JSONObject
 import groovy.org.grails.datastore.remote.hibernate.query.builder.RemoteQuery
-import auth.Authenticator
+import org.codehaus.groovy.grails.web.json.JSONObject
+import groovy.org.grails.datastore.remote.hibernate.auth.Authenticator
 
 /**
  * Created by richard on 18.2.15.
