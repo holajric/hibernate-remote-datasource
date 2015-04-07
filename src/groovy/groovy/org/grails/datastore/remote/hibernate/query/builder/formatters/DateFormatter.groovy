@@ -16,6 +16,6 @@ class DateFormatter extends Formatter {
             log.warn "Invalid first parameter has to String describing date format, returning unchanged input."
             return input
         }
-        return (new Date(input)).format(params[0])
+        return (Date.parseToStringDate(input)).format(params[0])
     }
 }

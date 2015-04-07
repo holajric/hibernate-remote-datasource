@@ -10,7 +10,7 @@ import java.beans.Introspector
 @Log4j
 class CapitalizeFormatter extends Formatter {
     Object format(Object input, List<Object> params) {
-        if(!input)  {
+        if(!input || !(input instanceof String))  {
             log.warn "Input not provided returning empty value"
             return ""
         }

@@ -8,8 +8,8 @@ import groovy.util.logging.Log4j
 @Log4j
 class LowerCaseFormatter extends Formatter {
     Object format(Object input, List<Object> params) {
-        if(!input)  {
-            log.warn "Input not provided returning empty value"
+        if(!input || !(input instanceof String))  {
+            log.warn "Valid input not provided returning empty value"
             return ""
         }
         return input.toLowerCase()
