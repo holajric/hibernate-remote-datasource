@@ -40,9 +40,9 @@ class CachedConfigParser {
         }
         if(!mapping[entity.getName()])    {
             log.info "Class ${entity.getName()} is not remote or does not have valid remote mapping"
-            return null
+            return false
         }
-        return (mapping[entity.getName()] != null)
+        return true
     }
 
     static DataSourceConnector getDataSourceConnector(QueryDescriptor desc)    {
@@ -84,14 +84,14 @@ class CachedConfigParser {
             return null
         if(!authenticator["${desc.entityName} ${desc.operation}}"])  {
             String name = (mapping?."$desc.entityName"?."operations"?.getAt(desc.operation)?."authentication"
-                          ?: mapping[desc.entityName]["authentication"]
+                          ?: mapping?."$desc.entityName"?."authentication"
                           ?: "")
             if(name == "") {
                 log.info "No authenticator setted up, skipping"
                 return null
             }
             try {
-                authenticator["${desc.entityName} ${desc.operation}}"] = Class.forName("auth.${name}Authenticator")?.newInstance(desc.entityName, desc.operation)
+                authenticator["${desc.entityName} ${desc.operation}}"] = Class.forName("groovy.org.grails.datastore.remote.hibernate.auth.${name}Authenticator")?.newInstance(desc.entityName, desc.operation)
             }   catch(ClassNotFoundException ex)    {
                 log.error "Class auth.${name}Authenticator does not exist!"
                 return null
@@ -117,7 +117,7 @@ class CachedConfigParser {
     }
 
     private static boolean isValidDescriptor(QueryDescriptor desc) {
-        if (desc.entityName.empty) {
+        if (!desc?.entityName || desc?.entityName?.empty) {
             log.error "Descriptor entityName is required"
             return false
         }
