@@ -46,6 +46,10 @@ class GormApiParser implements CallingParser {
     ]
 
     QueryDescriptor parseFinder(String clazz, String finder, params)   {
+        if(!(finder instanceof String) || !(clazz instanceof String)) {
+            log.error "Finder and className have to be strings"
+            return null
+        }
         def splitted = finder.replaceFirst(/By/,"<SPLIT>").split(/<SPLIT>/)
         String operation = splitted?.getAt(0)
         if(!ALLOWED_FINDERS.contains(operation)) {
@@ -91,7 +95,7 @@ class GormApiParser implements CallingParser {
             }
         }
 
-        if(params.size() >= counter + 1)   {
+        if(params?.size() >= counter + 1)   {
             queryDesc.paginationSorting = params[counter]
         }
 
@@ -112,6 +116,7 @@ class GormApiParser implements CallingParser {
         }
         def queryDesc = new QueryDescriptor(entityName: instance.class.getName())
         queryDesc.operation = Operation."${operation.toUpperCase()}"
+        println instance
         if(operation == "update" || operation == "delete")   {
             if(instance?.id)
                 queryDesc.conditions.add(new SimpleCondition(attribute: "id", comparator: Operator.EQUALS, value: instance.id ))
