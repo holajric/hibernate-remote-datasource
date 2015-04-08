@@ -2,8 +2,6 @@ package groovy.org.grails.datastore.remote.hibernate.query.builder.formatters
 
 import grails.test.mixin.TestMixin
 import grails.test.mixin.support.GrailsUnitTestMixin
-import groovy.org.grails.datastore.remote.hibernate.parsers.calling.GormApiParser
-import groovy.org.grails.datastore.remote.hibernate.query.QueryDescriptor
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -26,7 +24,7 @@ class FormatterSpec extends Specification {
         String attribute = givenAttribute
         String url = givenUrl
         and:
-        QueryDescriptor desc = GormApiParser
+        String result = Formatter.formatAttribute(url, attribute, value)
         expect:
         assert result == expectedResult
         where:
