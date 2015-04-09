@@ -82,7 +82,7 @@ class CachedConfigParser {
     static Authenticator getAuthenticator(QueryDescriptor desc) {
         if(!isValidDescriptor(desc))
             return null
-        if(!authenticator["${desc.entityName} ${desc.operation}}"])  {
+        if(!authenticator["${desc.entityName} ${desc.operation}"])  {
             String name = (mapping?."$desc.entityName"?."operations"?.getAt(desc.operation)?."authentication"
                           ?: mapping?."$desc.entityName"?."authentication"
                           ?: "")
@@ -91,29 +91,29 @@ class CachedConfigParser {
                 return null
             }
             try {
-                authenticator["${desc.entityName} ${desc.operation}}"] = Class.forName("groovy.org.grails.datastore.remote.hibernate.auth.${name}Authenticator")?.newInstance(desc.entityName, desc.operation)
+                authenticator["${desc.entityName} ${desc.operation}"] = Class.forName("groovy.org.grails.datastore.remote.hibernate.auth.${name}Authenticator")?.newInstance(desc.entityName, desc.operation)
             }   catch(ClassNotFoundException ex)    {
                 log.error "Class auth.${name}Authenticator does not exist!"
                 return null
             }
         }
-        return authenticator["${desc.entityName} ${desc.operation}}"]
+        return authenticator["${desc.entityName} ${desc.operation}"]
     }
 
     static Map<String, Object> getAuthenticationParams(String entity, Operation operation) {
-        if(!authenticationParams["${entity} ${operation}}"])  {
-            authenticationParams["${entity} ${operation}}"] = (mapping?."$entity"?."operations"?.getAt(operation)?."authenticationParams"
+        if(!authenticationParams["${entity} ${operation}"])  {
+            authenticationParams["${entity} ${operation}"] = (mapping?."$entity"?."operations"?.getAt(operation)?."authenticationParams"
                     ?: mapping[entity]["authenticationParams"]
                     ?: [:])
         }
 
-        return authenticationParams["${entity} ${operation}}"]
+        return authenticationParams["${entity} ${operation}"]
     }
 
     static boolean isOperationAllowed(QueryDescriptor desc) {
         if(!isValidDescriptor(desc))
             return false
-        return (mapping[desc.entityName]["allowed"] == null || mapping[desc.entityName]["allowed"].contains(desc.operation))
+        return (!mapping.containsKey(desc.entityName) || !mapping?."${desc.entityName}"?.containsKey("allowed") || mapping[desc.entityName]["allowed"].contains(desc.operation))
     }
 
     private static boolean isValidDescriptor(QueryDescriptor desc) {
@@ -150,9 +150,8 @@ class CachedConfigParser {
     }
 
     static Map<String, Object> getQueryOperation(QueryDescriptor desc)   {
-        if(!isValidDescriptor(desc))
-            return null
         if(!isOperationAllowed(desc))   {
+            println "Operation ${desc.operation} for ${desc.entityName} is not allowed"
             log.warn "Operation ${desc.operation} for ${desc.entityName} is not allowed"
             return null
         }
@@ -173,11 +172,14 @@ class CachedConfigParser {
         mapping?."${desc?.entityName}"?."operations"?.getAt(desc?.operation)?.each {
             tempOperation[it?.key] = it?.value
         }
-
-        tempOperation?."endpoint" = tempOperation?."endpoint"?.replaceAll(/\[:operation(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."endpoint","operation", desc.operation.toString())}")
-        tempOperation?."endpoint" = tempOperation?."endpoint"?.replaceAll(/\[:entityName(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."endpoint","entityName", desc.entityName.tokenize('.')?.last())}")
-        tempOperation?."queryEndpoint" = tempOperation?."queryEndpoint"?.replaceAll(/\[:operation(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."queryEndpoint","operation", desc.operation.toString())}")
-        tempOperation?."queryEndpoint" = tempOperation?."queryEndpoint"?.replaceAll(/\[:entityName(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."queryEndpoint","entityName", desc.entityName.tokenize('.')?.last())}")
+        if(tempOperation?."endpoint") {
+            tempOperation?."endpoint" = tempOperation?."endpoint"?.replaceAll(/\[:operation(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."endpoint", "operation", desc.operation.toString())}")
+            tempOperation?."endpoint" = tempOperation?."endpoint"?.replaceAll(/\[:entityName(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."endpoint", "entityName", desc.entityName.tokenize('.')?.last())}")
+        }
+        if(tempOperation?."queryEndpoint") {
+            tempOperation?."queryEndpoint" = tempOperation?."queryEndpoint"?.replaceAll(/\[:operation(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."queryEndpoint", "operation", desc.operation.toString())}")
+            tempOperation?."queryEndpoint" = tempOperation?."queryEndpoint"?.replaceAll(/\[:entityName(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."queryEndpoint", "entityName", desc.entityName.tokenize('.')?.last())}")
+        }
         if(!mapping?."$desc.entityName"?."operations")
             mapping?."$desc.entityName"?."operations" = [:]
         mapping?."$desc.entityName"?."operations"?.putAt(desc.operation, tempOperation)

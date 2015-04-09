@@ -12,6 +12,7 @@ import groovy.org.grails.datastore.remote.hibernate.query.Operation
 import groovy.org.grails.datastore.remote.hibernate.query.QueryDescriptor
 import groovy.org.grails.datastore.remote.hibernate.query.builder.QueryBuilder
 import groovy.org.grails.datastore.remote.hibernate.query.builder.RestQueryBuilder
+import groovy.org.grails.datastore.remote.hibernate.sync.MergingStrategy
 import spock.lang.Specification
 import development.Test
 import development.RemoteTest
@@ -139,12 +140,11 @@ class CachedConfigParserSpec extends Specification {
         "development.Test"  | Operation.UPDATE  | []                                 | false
     }
 
-    /*TODO getAuthParams - HERE */
-
     @Unroll
     void "test if returns #expectedAuthenticator for #givenClass with #givenOperation and #givenMapping"() {
         given:
         QueryDescriptor desc = new QueryDescriptor(entityName: givenClass, operation: givenOperation)
+        CachedConfigParser.authenticator["${desc.entityName} ${desc.operation}"] = null
         CachedConfigParser.mapping[givenClass] = givenMapping
         and:
         Authenticator result = CachedConfigParser.getAuthenticator(desc)
@@ -183,5 +183,91 @@ class CachedConfigParserSpec extends Specification {
                                                    (Operation.CREATE):
                                                     ["authentication":"TED"]],
                                                  "authentication": "Token"]      | new TokenAuthenticator("development.Test", Operation.UPDATE)
+    }
+
+    @Unroll
+    void "test if authenticator has #expectedParams with #givenOperation and #givenMapping"() {
+        given:
+        QueryDescriptor desc = new QueryDescriptor(entityName: "development.Test", operation: givenOperation)
+        CachedConfigParser.authenticator["development.Test ${desc.operation}"] = null
+        CachedConfigParser.authenticationParams["development.Test ${desc.operation}"] = null
+        CachedConfigParser.mapping["development.Test"] = givenMapping
+        and:
+        Authenticator result = CachedConfigParser.getAuthenticator(desc)
+        expect:
+        assert result?.@authenticationParameters == expectedParams
+        where:
+        givenOperation    | givenMapping                   | expectedParams
+        Operation.READ    | ["authentication": "Token"]    | [:]
+        Operation.READ    | ["authentication": "Token",
+                            "authenticationParams": [
+                                "token":"aasd1641161"
+                            ]]                             | ["token":"aasd1641161"]
+        Operation.READ  | ["authentication": "Token",
+                           "authenticationParams": [
+                                "token":"asdasdasd"
+                           ],
+                           "operations": [
+                            (Operation.READ):
+                             ["authentication": "Token"],
+                            (Operation.CREATE):
+                             ["authentication":"Token"]]] | ["token":"asdasdasd"]
+        Operation.READ  | ["authentication": "Token",
+                           "authenticationParams": [
+                            "token":"aasd1641161"],
+                           "operations": [
+                            (Operation.READ):
+                             ["authenticationParams": [
+                               "token":"bf564asd6",
+                               "bag":"asdad"]],
+                            (Operation.CREATE):
+                              ["authentication":"Token"]]] | ["token":"bf564asd6","bag":"asdad"]
+    }
+
+    @Unroll
+    void "test if mapping is #expectedMapping with #givenClass and #givenMapping"() {
+        given:
+        QueryDescriptor desc = new QueryDescriptor(entityName: givenClass, operation: Operation.READ)
+        CachedConfigParser.attributeMapping[givenClass] = null
+        CachedConfigParser.mapping[givenClass] = givenMapping
+        and:
+        def result = CachedConfigParser.getAttributeMap(desc)
+        expect:
+        assert result == expectedMapping
+        where:
+        givenClass          | givenMapping             | expectedMapping
+        "NotExist"          | []                       | null
+        "java.lang.Object"  | []                       | null
+        "development.Test"  | ["mapping": [
+                                "name":"otherName"],
+                               "local":[]]             | ["id":"id", "name":"otherName", "number":"number", "test":"test"]
+        "development.Test"  | ["local":[]]             | ["id":"id", "name":"name", "number":"number", "test":"test"]
+        "development.Test"  | ["mapping": [
+                                "name":"otherName"],
+                               "local":["number"]]     | ["id":"id", "name":"otherName", "test":"test"]
+    }
+
+    @Unroll
+    void "test if operation is #expectedOperationMap with #givenClass, #givenOperation and #givenMapping"() {
+        given:
+        QueryDescriptor desc = new QueryDescriptor(entityName: givenClass, operation: givenOperation)
+        CachedConfigParser.mapping[givenClass] = null
+        CachedConfigParser.mapping[givenClass] = givenMapping
+        and:
+        def result = CachedConfigParser.getQueryOperation(desc)
+        expect:
+        assert result == expectedOperationMap
+        where:
+        givenClass          | givenOperation      | givenMapping                        | expectedOperationMap
+        "development.Test"  | Operation.CREATE    | ["allowed":[Operation.READ]]        | null
+        "development.Test"  | Operation.READ      | [:]                                 | ["endpoint" :"test/show/[:id]", "queryEndpoint":"test","mergingStrategy": MergingStrategy.PREFER_LOCAL, "method":"GET"]
+        "development.Test"  | Operation.CREATE    | [:]                                 | ["endpoint" :"test/save", "mergingStrategy": MergingStrategy.PREFER_LOCAL, "method":"POST"]
+        "development.Test"  | Operation.UPDATE    | [:]                                 | ["endpoint" :"test/update/[:id]", "mergingStrategy": MergingStrategy.PREFER_LOCAL, "method":"PUT"]
+        "development.Test"  | Operation.UPDATE    | ["generalDefault":["method":"GET"]] | ["endpoint" :"test/update/[:id]", "mergingStrategy": MergingStrategy.PREFER_LOCAL, "method":"GET"]
+        "development.Test"  | Operation.UPDATE    | ["operations":[(Operation.UPDATE):
+                                                      ["method":"GET"]]]                | ["endpoint" :"test/update/[:id]", "mergingStrategy": MergingStrategy.PREFER_LOCAL, "method":"GET"]
+        "development.Test"  | Operation.UPDATE    | ["generalDefault":["method":"POST"],
+                                                     "operations":[(Operation.UPDATE):
+                                                      ["method":"GET"]]]                | ["endpoint" :"test/update/[:id]", "mergingStrategy": MergingStrategy.PREFER_LOCAL, "method":"GET"]
     }
 }
