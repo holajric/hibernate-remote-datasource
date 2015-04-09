@@ -116,7 +116,7 @@ class RestQueryBuilder implements QueryBuilder {
     }
 
     boolean isConditionSupported(Condition condition, QueryDescriptor desc)  {
-        if(condition.attribute.empty)  {
+        if(!condition?.attribute || condition.attribute.empty)  {
             log.error "Condition attribute is required"
             return false
         }
