@@ -113,7 +113,7 @@ class CachedConfigParser {
     static boolean isOperationAllowed(QueryDescriptor desc) {
         if(!isValidDescriptor(desc))
             return false
-        return (!mapping.containsKey(desc.entityName) || !mapping?."${desc.entityName}"?.containsKey("allowed") || mapping[desc.entityName]["allowed"].contains(desc.operation))
+        return (!mapping?.containsKey(desc.entityName) || !mapping?."${desc.entityName}"?.containsKey("allowed") || mapping?."${desc.entityName}"?."allowed" == null || mapping[desc.entityName]["allowed"].contains(desc.operation))
     }
 
     private static boolean isValidDescriptor(QueryDescriptor desc) {
