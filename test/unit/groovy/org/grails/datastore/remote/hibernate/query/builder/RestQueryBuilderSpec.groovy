@@ -2,6 +2,7 @@ package groovy.org.grails.datastore.remote.hibernate.query.builder
 
 import grails.test.mixin.TestMixin
 import grails.test.mixin.support.GrailsUnitTestMixin
+import grails.util.Environment
 import groovy.org.grails.datastore.remote.hibernate.parsers.config.CachedConfigParser
 import groovy.org.grails.datastore.remote.hibernate.query.Condition
 import groovy.org.grails.datastore.remote.hibernate.query.ConditionJoin
@@ -20,7 +21,13 @@ import spock.lang.Unroll
 @TestMixin(GrailsUnitTestMixin)
 class RestQueryBuilderSpec extends Specification {
 
-    def setup() {
+    def setupSpec() {
+        ConfigObject currentConfig = grailsApplication.config
+        ConfigSlurper slurper = new ConfigSlurper(Environment.getCurrent().getName());
+        ConfigObject secondaryConfig = slurper.parse(grailsApplication.classLoader.loadClass("HibernateRemoteDatasourceDefaultConfig"))
+        ConfigObject config = new ConfigObject();
+        config.putAll(secondaryConfig.merge(currentConfig))
+        grailsApplication.config = config;
     }
 
     def cleanup() {
@@ -58,7 +65,7 @@ class RestQueryBuilderSpec extends Specification {
     }
 
     @Unroll
-    void "test if isConditionSupported is #expectedResult with #givenQuery and #givenEndpoint"() {
+    void "test if isSingleQuery is #expectedResult with #givenQuery and #givenEndpoint"() {
         given:
         QueryDescriptor desc = givenQuery
         RestQueryBuilder builder = new RestQueryBuilder()
@@ -118,27 +125,154 @@ class RestQueryBuilderSpec extends Specification {
                                                                                 "&to=[:upperBound]"]]                | "from=10&to=30"
     }
 
-    /*@Unroll
-    void "test if operation is #expectedOperationMap with #givenClass, #givenOperation and #givenMapping"() {
+    @Unroll
+    void "test if generateBatchQuery returns #expectedResult with #givenOperation, #givenDescriptor, #givenMapping and givenPrefix"() {
         given:
-        QueryDescriptor desc = new QueryDescriptor(entityName: givenClass, operation: givenOperation)
-        CachedConfigParser.mapping[givenClass] = null
-        CachedConfigParser.mapping[givenClass] = givenMapping
+        QueryDescriptor desc = givenDescriptor
+        CachedConfigParser.mapping[desc.entityName] = null
+        CachedConfigParser.mapping[desc.entityName] = givenMapping
+        RestQueryBuilder builder = new RestQueryBuilder()
         and:
-        def result = CachedConfigParser.getQueryOperation(desc)
+        def result = builder.generateBatchQuery(desc,givenOperation,givenPrefix)
         expect:
-        assert result == expectedOperationMap
+        assert result == expectedResult
         where:
-        givenClass          | givenOperation      | givenMapping                        | expectedOperationMap
-        "development.Test"  | Operation.CREATE    | ["allowed":[Operation.READ]]        | null
-        "development.Test"  | Operation.READ      | [:]                                 | ["endpoint" :"test/show/[:id]", "queryEndpoint":"test","mergingStrategy": MergingStrategy.PREFER_LOCAL, "method":"GET"]
-        "development.Test"  | Operation.CREATE    | [:]                                 | ["endpoint" :"test/save", "mergingStrategy": MergingStrategy.PREFER_LOCAL, "method":"POST"]
-        "development.Test"  | Operation.UPDATE    | [:]                                 | ["endpoint" :"test/update/[:id]", "mergingStrategy": MergingStrategy.PREFER_LOCAL, "method":"PUT"]
-        "development.Test"  | Operation.UPDATE    | ["generalDefault":["method":"GET"]] | ["endpoint" :"test/update/[:id]", "mergingStrategy": MergingStrategy.PREFER_LOCAL, "method":"GET"]
-        "development.Test"  | Operation.UPDATE    | ["operations":[(Operation.UPDATE):
-                                                                           ["method":"GET"]]]                | ["endpoint" :"test/update/[:id]", "mergingStrategy": MergingStrategy.PREFER_LOCAL, "method":"GET"]
-        "development.Test"  | Operation.UPDATE    | ["generalDefault":["method":"POST"],
-                                                     "operations":[(Operation.UPDATE):
-                                                                           ["method":"GET"]]]                | ["endpoint" :"test/update/[:id]", "mergingStrategy": MergingStrategy.PREFER_LOCAL, "method":"GET"]
-    }*/
+        givenOperation                    | givenDescriptor                                       | givenMapping         | givenPrefix  | expectedResult
+        ["endpoint" :
+          "test/update/[:id]"]            | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.OR, operation: Operation.UPDATE,
+                                             entityName: "development.Test", conditions: [
+                                              new SimpleCondition(attribute: "name",
+                                               comparator: Operator.EQUALS,
+                                               value: "TEST")])                                   | [:]                  | ""           | ""
+        ["endpoint" :
+          "test/update/[:id]"]            | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.NONE, operation: Operation.UPDATE,
+                                             entityName: "development.Test", conditions: [
+                                              new SimpleCondition(attribute: "name",
+                                               comparator: Operator.NOT_EQUAL,
+                                               value: "TEST")])                                   | [:]                  | ""           | "test/update"
+        ["endpoint" :
+          "test/update/[:id]"]            | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.OR, operation: Operation.UPDATE,
+                                             entityName: "development.Test", conditions:[])       | [:]                  | ""           | "test/update"
+        ["queryEndpoint" :
+          "test/queryUpdate",
+         "endpoint" :
+          "test/update/[:id]"]            | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.OR, operation: Operation.UPDATE,
+                                             entityName: "development.Test", conditions:[])       | [:]                  | ""           | "test/queryUpdate"
+        ["queryEndpoint" :
+          "test/queryUpdate"]             | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.NONE, operation: Operation.UPDATE,
+                                             entityName: "development.Test", conditions:[
+                                              new SimpleCondition(attribute: "name",
+                                               comparator: Operator.EQUALS,
+                                               value: "TEST")])                                   | [:]                  | ""           | "test/queryUpdate?name=TEST"
+        ["queryEndpoint" :
+          "test/queryUpdate"]             | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.NONE, operation: Operation.UPDATE,
+                                             entityName: "development.Test", conditions:[
+                                              new SimpleCondition(attribute: "name",
+                                               comparator: Operator.EQUALS,
+                                               value: "TEST"),
+                                              new Condition(attribute: "number",
+                                               comparator: Operator.IS_NULL)])                    | [:]                  | ""           | "test/queryUpdate?name=TEST"
+        ["queryEndpoint" :
+          "test/queryUpdate"]             | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.NONE, operation: Operation.UPDATE,
+                                             entityName: "development.Test", conditions:[
+                                              new SimpleCondition(attribute: "name",
+                                               comparator: Operator.EQUALS,
+                                               value: "TEST"),
+                                              new Condition(attribute: "number",
+                                               comparator: Operator.IS_NULL)])                    | ["queryMapping":[
+                                                                                                      "number IS_NULL":
+                                                                                                      "numNull=true"]]   | ""           | "test/queryUpdate?name=TEST&numNull=true"
+        [:]                               | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.OR, operation: Operation.UPDATE,
+                                             entityName: "development.Test", conditions:[])       | [:]                  | ""           | ""
+        ["endpoint" : "test/update"]      | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.OR, operation: Operation.UPDATE,
+                                             entityName: "development.Test", conditions:[])       | [:]                  | "hash"       | ""
+        ["hashEndpoint" : "test/update"]  | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.OR, operation: Operation.UPDATE,
+                                             entityName: "development.Test", conditions:[])       | [:]                  | "hash"       | "test/update"
+        ["endpoint" : "test/update"]      | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.OR, operation: Operation.UPDATE,
+                                             entityName: "development.Test", paginationSorting: [
+                                              "max":10, "sort":"name"])                           | ["supportedParams":
+                                                                                                      ["max"]]            | ""           | "test/update?max=10"
+        ["endpoint" : "test/update"]      | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.NONE, operation: Operation.UPDATE,
+                                             entityName: "development.Test", conditions:[
+                                              new SimpleCondition(attribute: "name",
+                                               comparator: Operator.EQUALS,
+                                               value: "TEST")], paginationSorting: [
+                                              "max":10])                                          | [:]                  | ""           | "test/update?name=TEST&max=10"
+        ["endpoint" : "test/update"]      | new QueryDescriptor(conditionJoin:
+                                             ConditionJoin.OR, operation: Operation.UPDATE,
+                                             entityName: "development.Test", paginationSorting: [
+                                              "max":10, "sort":"name"])                           | ["paramMapping":
+                                                                                                      ["max":"limit"]]  | ""           | "test/update?limit=10&sort=name"
+    }
+
+    @Unroll
+    void "test if generateQuery returns #expectedResult with #givenDescriptor, #givenMapping and givenPrefix"() {
+        given:
+        QueryDescriptor desc = givenDescriptor
+        CachedConfigParser.mapping[desc.entityName] = null
+        CachedConfigParser.mapping[desc.entityName] = givenMapping
+        RestQueryBuilder builder = new RestQueryBuilder()
+        and:
+        def result = builder.generateQuery(desc, givenPrefix)
+        expect:
+        assert result?.getClass() == expectedResult?.getClass()
+        assert result?.url == expectedResult?.url
+        assert result?.method == expectedResult?.method
+        where:
+        givenDescriptor                                       | givenMapping                    | givenPrefix  | expectedResult
+        new QueryDescriptor(conditionJoin:
+         ConditionJoin.NONE, operation: Operation.UPDATE,
+         entityName: "", conditions: [
+          new SimpleCondition(attribute: "name",
+           comparator: Operator.EQUALS,
+           value: "TEST")])                                   | ["baseUrl":"http://test.cz"]    | ""           | null
+        new QueryDescriptor(conditionJoin:
+         ConditionJoin.NONE, operation: Operation.UPDATE,
+         entityName: "development.Test", conditions: [
+          new SimpleCondition(attribute: "name",
+           comparator: Operator.EQUALS,
+           value: "TEST")])                                   | [:]                             | ""           | null
+        new QueryDescriptor(conditionJoin:
+         ConditionJoin.NONE, operation: Operation.UPDATE,
+         entityName: "development.Test", conditions: [
+          new SimpleCondition(attribute: "name",
+           comparator: Operator.EQUALS,
+           value: "TEST")])                                   | ["baseUrl":"http://test.cz",
+                                                                 "allowed":[Operation.READ]]    | ""           | null
+        new QueryDescriptor(conditionJoin:
+         ConditionJoin.NONE, operation: Operation.UPDATE,
+         entityName: "development.Test", conditions: [
+          new SimpleCondition(attribute: "name",
+           comparator: Operator.EQUALS,
+           value: "TEST")])                                   | ["baseUrl":"http://test.cz"]    | "hash"       | null
+        new QueryDescriptor(conditionJoin:
+         ConditionJoin.NONE, operation: Operation.UPDATE,
+         entityName: "development.Test", conditions: [
+          new SimpleCondition(attribute: "name",
+           comparator: Operator.EQUALS,
+           value: "TEST")])                                   | ["baseUrl":"http://test.cz",
+                                                                 "generalDefault":[
+                                                                  "method": null]]              | ""           | null
+        new QueryDescriptor(conditionJoin:
+         ConditionJoin.AND, operation: Operation.READ,
+         entityName: "development.Test", conditions: [
+          new SimpleCondition(attribute: "name",
+            comparator: Operator.EQUALS,
+            value: "Test"), new SimpleCondition(
+            attribute: "number", comparator: Operator.EQUALS,
+            value: 10)])                                      | ["baseUrl":"http://test.cz/"]   | ""           | new RestRemoteQuery(url: "http://test.cz/test?name=Test&number=10", method: "GET")
+    }
+
 }

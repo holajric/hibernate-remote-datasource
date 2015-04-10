@@ -24,8 +24,8 @@ class RestQueryBuilder implements QueryBuilder {
             log.error "Descriptor entityName is required"
             return null
         }
-        String tempUrl = CachedConfigParser.mapping[desc.entityName]["baseUrl"]
-        if(!CachedConfigParser.mapping[desc.entityName]["baseUrl"])   {
+        String tempUrl
+        if((tempUrl = CachedConfigParser.mapping[desc.entityName]["baseUrl"]) == null)   {
             log.error "Base URL is required"
             return null
         }
@@ -39,15 +39,15 @@ class RestQueryBuilder implements QueryBuilder {
             log.error "Operation $prefix endpoint is required"
             return null
         }
+        if(!operation["method"])    {
+            log.error "Operation method is required"
+            return null
+        }
         if (isSingleQuery(desc, operation[endpoint])) {
             tempUrl += operation[endpoint]
             tempUrl = tempUrl.replaceAll(/\[:${desc.conditions[0].attribute}(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempUrl, desc.conditions[0].attribute, desc.conditions[0].value)}")
         }   else    {
             tempUrl+= generateBatchQuery(desc, operation, prefix)
-        }
-        if(!operation["method"])    {
-            log.error "Operation method is required"
-            return null
         }
         return new RestRemoteQuery(method: operation["method"], url: tempUrl)
     }
@@ -67,23 +67,20 @@ class RestQueryBuilder implements QueryBuilder {
         }
         String endpoint = prefix.empty ? "endpoint" : prefix + "endpoint".capitalize()
         String queryEndpoint = prefix.empty ? "queryEndpoint" : prefix + "queryEndpoint".capitalize()
-        String tempUrl = operation[queryEndpoint]?: (operation[endpoint])?.replaceAll(/\/\[\:.*\]/, "") ?: {
+        String tempUrl = operation[queryEndpoint]?: operation.containsKey(endpoint) ? operation[endpoint].replaceAll(/\/\[\:.*\]/, "") : ""
+        if(tempUrl.empty) {
             log.warn "Operation ${desc.operation} for ${desc.entityName} has no endpoint, empty endpoint will be used"
-            return ""
+            return tempUrl
         }
-        boolean first = tempUrl.contains("?")
+        boolean first = !tempUrl.contains("?")
         desc.conditions.eachWithIndex { condition, index ->
             if(!isConditionSupported(condition, desc)) {
                 log.info "condition $condition is not supported by this QueryBuilder, it will be skipped and filtered locally"
             }   else {
                 String conditionString = generateConditionQuery(condition, desc)
-                if (conditionString.empty) {
-                    log.info "condition $condition is not supported by this QueryBuilder, it will be skipped and filtered locally"
-                }   else {
-                    tempUrl += first ? "?" : "&"
-                    first = false
-                    tempUrl += conditionString
-                }
+                tempUrl += first ? "?" : "&"
+                first = false
+                tempUrl += conditionString
             }
         }
 
