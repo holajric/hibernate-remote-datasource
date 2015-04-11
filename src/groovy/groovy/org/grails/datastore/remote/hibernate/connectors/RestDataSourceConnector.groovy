@@ -7,6 +7,8 @@ import org.codehaus.groovy.grails.web.json.JSONArray
 import org.codehaus.groovy.grails.web.json.JSONObject
 import groovy.org.grails.datastore.remote.hibernate.query.builder.*
 import groovy.org.grails.datastore.remote.hibernate.auth.Authenticator
+import org.springframework.http.ResponseEntity
+
 /**
  * Created by richard on 18.2.15.
  */
@@ -70,14 +72,20 @@ class RestDataSourceConnector implements DataSourceConnector {
     }
 
     private List<JSONObject> sanitizeResponse(response) {
-        if(response?.getStatus()?.toString()[0] == '4')  {
-            log.error "resource not found or not accepted"
-            return null
-        }
-        if(response?.getStatus()?.toString()[0] == '5')   {
-            log.error "resource failed with error"
-        }
-        if(!(response instanceof RestResponse))    {
+        try {
+            if (response?.getStatus()?.toString()[0] == '4') {
+                log.error "resource not found or not accepted"
+                return null
+            }
+            if (response?.getStatus()?.toString()[0] == '5') {
+                log.error "resource failed with error"
+                return null
+            }
+            if (!(response instanceof RestResponse)) {
+                return null
+            }
+        }   catch(MissingMethodException ex)    {
+            log.error "invalid response"
             return null
         }
         if(!(response.json instanceof JSONArray))
