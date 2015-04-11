@@ -14,7 +14,7 @@ import grails.test.mixin.Mock
  * See the API for {@link grails.test.mixin.support.GrailsUnitTestMixin} for usage instructions
  */
 @Mock(JournalLog)
-@TestMixin(DomainClassUnitTestMixin)
+@TestMixin(GrailsUnitTestMixin)
 class MergingManagerSpec extends Specification {
 
     def setup() {
