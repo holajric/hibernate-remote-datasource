@@ -2,6 +2,7 @@ package groovy.org.grails.datastore.remote.hibernate.connectors
 
 import grails.plugins.rest.client.RestBuilder
 import grails.plugins.rest.client.RestResponse
+import groovy.org.grails.datastore.remote.hibernate.parsers.config.CachedConfigParser
 import groovy.util.logging.Log4j
 import org.codehaus.groovy.grails.web.json.JSONArray
 import org.codehaus.groovy.grails.web.json.JSONObject
@@ -27,17 +28,17 @@ class RestDataSourceConnector implements DataSourceConnector {
         return (response instanceof RestResponse)
     }
 
-    List<JSONObject> read(RemoteQuery query, Authenticator auth = null)  {
+    List<JSONObject> read(RemoteQuery query, String className, Authenticator auth = null)  {
         def methodName = sanitizeInput(query, auth)
         if(methodName == false)
             return null
         def requestBody = auth?.getAuthenticatedBody(query) ?: {}
         def response = rest."$methodName"(query.url, requestBody)
         log.info "${response?.getStatus()} $query"
-        return sanitizeResponse(response)
+        return sanitizeResponse(response, className)
     }
 
-    List<JSONObject> write(RemoteQuery query, Authenticator auth = null)   {
+    List<JSONObject> write(RemoteQuery query, String className, Authenticator auth = null)   {
         def methodName = sanitizeInput(query, auth)
         if(methodName == false)
             return null
@@ -47,7 +48,7 @@ class RestDataSourceConnector implements DataSourceConnector {
         }
         def response = rest."$methodName"(query?.url, requestBody)
         log.info "${response?.getStatus()} $query"
-        return sanitizeResponse(response)
+        return sanitizeResponse(response, className)
     }
 
     private Object sanitizeInput(RemoteQuery query, Authenticator auth = null )  {
@@ -71,7 +72,7 @@ class RestDataSourceConnector implements DataSourceConnector {
         return methodName
     }
 
-    private List<JSONObject> sanitizeResponse(response) {
+    private List<JSONObject> sanitizeResponse(response, className) {
         try {
             if (response?.getStatus()?.toString()[0] == '4') {
                 log.error "resource not found or not accepted"
@@ -88,12 +89,23 @@ class RestDataSourceConnector implements DataSourceConnector {
             log.error "invalid response"
             return null
         }
-        if(!(response.json instanceof JSONArray))
-            return [response.json]
+        if(!(onIndex(response.json, CachedConfigParser.mapping[className]["dataPrefix"]) instanceof JSONArray))
+            return [onIndex(response.json, CachedConfigParser.mapping[className]["dataPrefix"])]
         List<JSONObject> responseList = []
-        for(def i = 0; i < response?.json?.length(); i++)
-            responseList.add(response?.json?.getJSONObject(i))
+        for(def i = 0; i < onIndex(response.json, CachedConfigParser.mapping[className]["dataPrefix"]).length(); i++)
+            responseList.add(onIndex(response.json, CachedConfigParser.mapping[className]["dataPrefix"]).getJSONObject(i))
 
         return responseList
+    }
+
+    private static Object onIndex(collection, String dottedIndex)   {
+        def result = collection
+        if(dottedIndex == null || dottedIndex.empty)
+            return result
+        def indexes = dottedIndex.tokenize(".")
+        indexes.each{
+            result = result[it]
+        }
+        return result
     }
 }

@@ -30,40 +30,53 @@ class MergingManagerSpec extends Specification {
         def local = new Test(name: "test")
         def remote = givenRemote
         String localAttr = "name"
-        String remoteAttr = "otherName"
+        String remoteAttr = "other.name"
         JournalLog journalLog = givenLog
         and:
         MergingManager."$givenStrategy"(local, remote, localAttr, remoteAttr, journalLog)
         expect:
         local?."$localAttr" == expectedLocal?."$localAttr"
-        remote["$remoteAttr"] == expectedRemote["$remoteAttr"]
+        onIndex(remote, remoteAttr) == onIndex(expectedRemote, remoteAttr)
         where:
         givenStrategy << ["forceLocal", "forceRemote", "forceRemote",
                           "preferLocal", "preferLocal", "preferLocal",
                           "preferLocal", "preferLocal", "preferRemote", "preferRemote",
                           "preferRemote", "preferRemote", "preferRemote"]
-        givenRemote << [["otherName":"test2"], ["otherName":"test2"], [:],
-                        ["otherName":"test2"], ["otherName":"test2"], ["otherName":"test2"],
-                        ["otherName":"test2"], [:], ["otherName":"test2"], ["otherName":"test2"],
-                        ["otherName":"test2"], ["otherName":"test2"], [:]]
+        givenRemote << [["other":["name":"test2"]], ["other":["name":"test2"]], [:],
+                        ["other":["name":"test2"]], ["other":["name":"test2"]], ["other":["name":"test2"]],
+                        ["other":["name":"test2"]], [:], ["other":["name":"test2"]], ["other":["name":"test2"]],
+                        ["other":["name":"test2"]], ["other":["name":"test2"]], [:]]
         givenLog << [null, null, null,
-                     new JournalLog(lastAttrHashes: ["name":"test".hashCode().toString()], lastRemoteAttrHashes: ["otherName":"test2".hashCode().toString()]),
-                     new JournalLog(lastAttrHashes: ["name":"test".hashCode().toString()], lastRemoteAttrHashes: ["otherName":"test".hashCode().toString()]),
-                     new JournalLog(lastAttrHashes: ["name":"test2".hashCode().toString()], lastRemoteAttrHashes: ["otherName":"test2".hashCode().toString()]),
-                     new JournalLog(lastAttrHashes: ["name":"test2".hashCode().toString()], lastRemoteAttrHashes: ["otherName":"test".hashCode().toString()]),
-                     new JournalLog(lastAttrHashes: ["name":"test".hashCode().toString()], lastRemoteAttrHashes: ["otherName":"test".hashCode().toString()]),
-                     new JournalLog(lastAttrHashes: ["name":"test".hashCode().toString()], lastRemoteAttrHashes: ["otherName":"test2".hashCode().toString()]),
-                     new JournalLog(lastAttrHashes: ["name":"test".hashCode().toString()], lastRemoteAttrHashes: ["otherName":"test".hashCode().toString()]),
-                     new JournalLog(lastAttrHashes: ["name":"test2".hashCode().toString()], lastRemoteAttrHashes: ["otherName":"test2".hashCode().toString()]),
-                     new JournalLog(lastAttrHashes: ["name":"test2".hashCode().toString()], lastRemoteAttrHashes: ["otherName":"test".hashCode().toString()]),
-                     new JournalLog(lastAttrHashes: ["name":"test".hashCode().toString()], lastRemoteAttrHashes: ["otherName":"test".hashCode().toString()])]
-        expectedRemote << [["otherName":"test"], ["otherName":"test2"], [:],
-                           ["otherName":"test"], ["otherName":"test2"], ["otherName":"test"],
-                           ["otherName":"test"], [:], ["otherName":"test2"], ["otherName":"test2"],
-                           ["otherName":"test"], ["otherName":"test2"], [:] ]
+                     new JournalLog(lastAttrHashes: ["name":"test".hashCode().toString()], lastRemoteAttrHashes: ["other":["name":"test2".hashCode().toString()]]),
+                     new JournalLog(lastAttrHashes: ["name":"test".hashCode().toString()], lastRemoteAttrHashes: ["other":["name":"test".hashCode().toString()]]),
+                     new JournalLog(lastAttrHashes: ["name":"test2".hashCode().toString()], lastRemoteAttrHashes: ["other":["name":"test2".hashCode().toString()]]),
+                     new JournalLog(lastAttrHashes: ["name":"test2".hashCode().toString()], lastRemoteAttrHashes: ["other":["name":"test".hashCode().toString()]]),
+                     new JournalLog(lastAttrHashes: ["name":"test".hashCode().toString()], lastRemoteAttrHashes: ["other":["name":"test".hashCode().toString()]]),
+                     new JournalLog(lastAttrHashes: ["name":"test".hashCode().toString()], lastRemoteAttrHashes: ["other":["name":"test2".hashCode().toString()]]),
+                     new JournalLog(lastAttrHashes: ["name":"test".hashCode().toString()], lastRemoteAttrHashes: ["other":["name":"test".hashCode().toString()]]),
+                     new JournalLog(lastAttrHashes: ["name":"test2".hashCode().toString()], lastRemoteAttrHashes: ["other":["name":"test2".hashCode().toString()]]),
+                     new JournalLog(lastAttrHashes: ["name":"test2".hashCode().toString()], lastRemoteAttrHashes: ["other":["name":"test".hashCode().toString()]]),
+                     new JournalLog(lastAttrHashes: ["name":"test".hashCode().toString()], lastRemoteAttrHashes: ["other":["name":"test".hashCode().toString()]])]
+        expectedRemote << [["other":["name":"test"]], ["other":["name":"test2"]], [:],
+                           ["other":["name":"test"]], ["other":["name":"test2"]], ["other":["name":"test"]],
+                           ["other":["name":"test"]], [:], ["other":["name":"test2"]], ["other":["name":"test2"]],
+                           ["other":["name":"test"]], ["other":["name":"test2"]], [:] ]
         expectedLocal <<[new Test(name: "test"), new Test(name: "test2"), new Test(name: "test"),
                          new Test(name: "test"), new Test(name: "test2"), new Test(name: "test"),
                          new Test(name: "test"), new Test(name: "test"), new Test(name: "test2"), new Test(name: "test2"),
                          new Test(name: "test"), new Test(name: "test2"), new Test(name: "test")]
+    }
+
+    private static Object onIndex(collection, String dottedIndex)   {
+        def result = collection
+        def indexes = dottedIndex.tokenize(".")
+        if(dottedIndex == null || dottedIndex.empty)
+            return result
+        indexes.each{
+            if(!result?."$it")
+                return null
+            result = result[it]
+        }
+        return result
     }
 }

@@ -9,6 +9,6 @@ import groovy.org.grails.datastore.remote.hibernate.auth.Authenticator
  */
 public interface DataSourceConnector {
     boolean doAction(RemoteQuery query, Authenticator auth)
-    List<JSONObject> read(RemoteQuery query, Authenticator auth)
-    List<JSONObject> write(RemoteQuery query, Authenticator auth)
+    List<JSONObject> read(RemoteQuery query, String className, Authenticator auth)
+    List<JSONObject> write(RemoteQuery query, String className, Authenticator auth)
 }

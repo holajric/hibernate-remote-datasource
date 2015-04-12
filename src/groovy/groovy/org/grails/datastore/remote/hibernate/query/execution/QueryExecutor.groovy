@@ -55,20 +55,19 @@ class QueryExecutor {
             return false
         }
 
-        if(synchLog.lastResponseHash && (connector.read(CachedConfigParser.getQueryBuilder(desc)?.generateHashQuery(desc))?.first()?."hash" == synchLog.lastResponseHash)) {
+        /*if(synchLog.lastResponseHash && (connector.read(CachedConfigParser.getQueryBuilder(desc)?.generateHashQuery(desc))?.first()?."hash" == synchLog.lastResponseHash)) {
             log.info "Remote data weren't changed, quitting"
             synchLog.isFinished = true
             synchLog.save(flush: true)
             return true
-        }
+        }*/
         List<JSONObject> responses
-        if((responses = connector.read(remoteQuery, CachedConfigParser.getAuthenticator(desc))) == null)    {
+        if((responses = connector.read(remoteQuery, desc.entityName, CachedConfigParser.getAuthenticator(desc))) == null)    {
             log.error "Data could not be read from ${remoteQuery}"
             synchLog.isFinished = true
             synchLog.save(flush:true)
             return false
         }
-
         if(synchLog.lastResponseHash && (synchLog.lastResponseHash == responses.toString().hashCode().toString()))   {
             log.info "Remote data weren't changed, quitting"
             synchLog.isFinished = true
@@ -163,16 +162,16 @@ class QueryExecutor {
             }
             return true
         }
-        if(desc.operation == Operation.UPDATE) {
+        /*if(desc.operation == Operation.UPDATE) {
             if(synchLog.lastResponseHash && (connector.read(CachedConfigParser.getQueryBuilder(desc)?.generateHashQuery(desc))?."hash" == synchLog.lastResponseHash)) {
                 log.info "Remote data weren't changed, quitting"
                 synchLog.isFinished = true
                 synchLog.save(flush: true)
                 return true
             }
-        }
+        }*/
         List<JSONObject> responses
-        if((responses = connector.write(remoteQuery, CachedConfigParser.getAuthenticator(desc))) == null)    {
+        if((responses = connector.write(remoteQuery, desc.entityName, CachedConfigParser.getAuthenticator(desc))) == null)    {
             log.error "Data could not be read from ${remoteQuery}"
             if(desc.operation == Operation.UPDATE)  {
                 synchLog.isFinished = true
@@ -222,14 +221,14 @@ class QueryExecutor {
         }
         ResponseFilter filter = new ResponseFilter()
         responses.each { response ->
-            if(!response[mapping["id"]])    {
+            if(!onIndex(response, mapping["id"]))    {
                 log.warn "There is no id in response, response can not be processed"
                 return false
             }
             if (filter.isValid(response, desc)) {
                 def instanceTemp
                 try {
-                    if((instanceTemp = instance ?: Class.forName(desc.entityName)?.directGet(response[mapping["id"]?:"id"]) ?: Class.forName(desc.entityName).newInstance()) == null) {
+                    if((instanceTemp = instance ?: Class.forName(desc.entityName)?.directGet(onIndex(response, mapping["id"])) ?: Class.forName(desc.entityName).newInstance()) == null) {
                         log.error "Instance could not be found or created"
                         return false
                     }
@@ -240,10 +239,10 @@ class QueryExecutor {
                     log.error "Class ${desc.entityName} is not domain."
                     return false
                 }
-                if(!JournalLog.countByEntityAndInstanceIdAndIsFinished(desc.entityName, response[mapping["id"]], false)) {
-                    if(!SynchronizationManager.withTransaction(instanceTemp.class.name, response[mapping["id"]], desc.operation) {
+                if(!JournalLog.countByEntityAndInstanceIdAndIsFinished(desc.entityName, onIndex(response, mapping["id"]), false)) {
+                    if(!SynchronizationManager.withTransaction(instanceTemp.class.name, onIndex(response, mapping["id"]), desc.operation) {
                         //Add instance check too
-                        JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, response[mapping["id"]], desc.operation)
+                        JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, onIndex(response, mapping["id"]), desc.operation)
                         if(journalLog.lastRemoteHash == response.toString().hashCode().toString() && journalLog.lastInstanceHash == instanceTemp.hashCode().toString())  {
                             log.info "Up to date, skipping"
                             return true
@@ -261,7 +260,7 @@ class QueryExecutor {
                         return false
                     }
                 }   else    {
-                    JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, response[mapping["id"]], desc.operation)
+                    JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, onIndex(response, mapping["id"]), desc.operation)
                     if(journalLog.lastRemoteHash == response.toString().hashCode().toString()  && journalLog.lastInstanceHash == instanceTemp.hashCode().toString())  {
                         log.info "Up to date, skipping"
                     }   else {
@@ -285,7 +284,7 @@ class QueryExecutor {
             log.error "Target instance is required"
             return false
         }
-        JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, response[mapping["id"]], desc.operation)
+        JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, onIndex(response, mapping["id"]), desc.operation)
         def oldResponse = response
         def oldAttrs = journalLog.lastAttrHashes
         def oldRemoteAttrs = journalLog.lastRemoteAttrHashes
@@ -346,4 +345,15 @@ class QueryExecutor {
         }
     }
 
+
+    private static Object onIndex(collection, String dottedIndex)   {
+        def result = collection
+        if(dottedIndex == null || dottedIndex.empty)
+            return result
+        def indexes = dottedIndex.tokenize(".")
+        indexes.each{
+            result = result[it]
+        }
+        return result
+    }
 }

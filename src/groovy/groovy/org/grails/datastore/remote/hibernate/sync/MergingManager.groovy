@@ -40,40 +40,71 @@ class MergingManager {
     }
 
     private static void forceRemote(local, remote, String localAttr, String remoteAttr, JournalLog journalLog)    {
-        if (remote["$remoteAttr"]) {
-            local?."$localAttr" = remote["$remoteAttr"]
+        if (onIndex(remote, remoteAttr)) {
+            local?."$localAttr" = onIndex(remote, remoteAttr)
         } else {
             log.info "Response $remoteAttr for attribute $localAttr is empty, skipping"
         }
     }
 
     private static void forceLocal(local, remote, String localAttr, String remoteAttr, JournalLog journalLog)    {
-        remote["$remoteAttr"]  = local?."$localAttr"
+        putOnIndex(remote, remoteAttr, local?."$localAttr")
+        //remote[remoteAttr]  = local?."$localAttr"
     }
 
     private static void preferLocal(local, remote, String localAttr, String remoteAttr, JournalLog journalLog)    {
         if(journalLog.lastAttrHashes["$localAttr"] == local?."$localAttr"?.toString()?.hashCode()?.toString() &&
-           journalLog.lastRemoteAttrHashes["$remoteAttr"] != remote["$remoteAttr"]?.toString()?.hashCode()?.toString()) {
-            if (remote["$remoteAttr"]) {
-                local?."$localAttr" = remote["$remoteAttr"]
+                onIndex(journalLog.lastRemoteAttrHashes, remoteAttr) != onIndex(remote, remoteAttr)?.toString()?.hashCode()?.toString()) {
+            if (onIndex(remote, remoteAttr)) {
+                local?."$localAttr" = onIndex(remote, remoteAttr)
             } else {
                 log.info "Response $remoteAttr for attribute $localAttr is empty, skipping"
             }
         } else  {
-            remote["$remoteAttr"]  = local?."$localAttr"
+            putOnIndex(remote, remoteAttr, local?."$localAttr")
+            //remote[remoteAttr]  = local?."$localAttr"
         }
     }
     private static void preferRemote(local, remote, String localAttr, String remoteAttr, JournalLog journalLog)    {
         if(journalLog.lastAttrHashes["$localAttr"] != local?."$localAttr"?.toString()?.hashCode()?.toString() &&
-           journalLog.lastRemoteAttrHashes["$remoteAttr"] == remote["$remoteAttr"]?.toString()?.hashCode()?.toString()) {
-            remote["$remoteAttr"]  = local?."$localAttr"
+           onIndex(journalLog.lastRemoteAttrHashes, remoteAttr) == onIndex(remote, remoteAttr)?.toString()?.hashCode()?.toString()) {
+            putOnIndex(remote, remoteAttr, local?."$localAttr")
         } else  {
-            if (remote["$remoteAttr"]) {
-                local?."$localAttr" = remote["$remoteAttr"]
+            if (onIndex(remote,remoteAttr)) {
+                local?."$localAttr" = onIndex(remote, remoteAttr)
             } else {
                 log.info "Response $remoteAttr for attribute $localAttr is empty, skipping"
             }
         }
+    }
+
+    private static Object onIndex(collection, String dottedIndex)   {
+        def result = collection
+        def indexes = dottedIndex.tokenize(".")
+        if(dottedIndex == null || dottedIndex.empty)
+            return result
+        indexes.each{
+            if(!result?."$it")
+                return null
+            result = result[it]
+        }
+        return result
+    }
+
+    private static void putOnIndex(collection, String dottedIndex, value)   {
+        def ref = collection
+        if(dottedIndex == null || dottedIndex.empty)
+            return
+        def indexes = dottedIndex.tokenize(".")
+        if(indexes.size() == 1) {
+            ref[indexes[0]] = value
+            return
+        }
+
+        indexes[0..-2].each{
+            ref = ref[it]
+        }
+        ref[indexes[-1]] = value
     }
 
 }

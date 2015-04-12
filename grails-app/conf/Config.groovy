@@ -13,7 +13,7 @@ log4j = {
     appenders {
         console name:'stdout', layout:pattern(conversionPattern: '%c{2} %m%n')
     }
-    error 'groovy.org.grails.datastore.remote.hibernate.auth',
+    info  'groovy.org.grails.datastore.remote.hibernate.auth',
           'groovy.org.grails.datastore.remote.hibernate.connectors',
           'development',
           'groovy.org.grails.datastore.remote.hibernate.parsers',
