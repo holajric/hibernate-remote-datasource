@@ -241,7 +241,6 @@ class QueryExecutor {
                 }
                 if(!JournalLog.countByEntityAndInstanceIdAndIsFinished(desc.entityName, onIndex(response, mapping["id"]), false)) {
                     if(!SynchronizationManager.withTransaction(instanceTemp.class.name, onIndex(response, mapping["id"]), desc.operation) {
-                        //Add instance check too
                         JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(instanceTemp.class.name, onIndex(response, mapping["id"]), desc.operation)
                         if(journalLog.lastRemoteHash == response.toString().hashCode().toString() && journalLog.lastInstanceHash == instanceTemp.hashCode().toString())  {
                             log.info "Up to date, skipping"
@@ -313,7 +312,7 @@ class QueryExecutor {
                     journalLog.save(flush:true)
                     return false
                 }
-                if((CachedConfigParser.getDataSourceConnector(desc)?.write(query, response)) == null)   {
+                if((CachedConfigParser.getDataSourceConnector(desc)?.write(query, desc.entityName, response)) == null)   {
                     log.warn "$query with data: $response wasn't sucesful"
                     desc.operation = originalOperation
                     journalLog.lastAttrHashes = oldAttrs

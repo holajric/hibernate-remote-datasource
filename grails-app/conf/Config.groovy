@@ -13,11 +13,8 @@ log4j = {
     appenders {
         console name:'stdout', layout:pattern(conversionPattern: '%c{2} %m%n')
     }
-    info  'groovy.org.grails.datastore.remote.hibernate.auth',
-          'groovy.org.grails.datastore.remote.hibernate.connectors',
-          'development',
-          'groovy.org.grails.datastore.remote.hibernate.parsers',
-          'groovy.org.grails.datastore.remote.hibernate.query'
+    error   'development',
+          'groovy.org.grails.datastore.remote.hibernate'
 
     error  'org.codehaus.groovy.grails.web.servlet',  //  controllers
            'org.codehaus.groovy.grails.web.pages', //  GSP

@@ -1,5 +1,6 @@
 package groovy.org.grails.datastore.remote.hibernate.sync
 
+import groovy.org.grails.datastore.remote.hibernate.parsers.config.CachedConfigParser
 import groovy.util.logging.Log4j
 import groovy.org.grails.datastore.remote.hibernate.query.QueryDescriptor
 
@@ -16,16 +17,16 @@ class MergingManager {
         }
         mergingMethod = mergingMethod.replaceAll(/_\w/){ it[1].toUpperCase() }
         try {
-            JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(local.class.name, remote[mapping["id"]], desc.operation)
+            JournalLog journalLog = JournalLog.findByEntityAndInstanceIdAndOperation(local.class.name, onIndex(remote, mapping["id"]), desc.operation)
             mapping.each {
                 try {
                     if(journalLog.lastAttrHashes["$it.key"] == local?."$it.key"?.toString()?.hashCode()?.toString() &&
-                       journalLog.lastRemoteAttrHashes["$it.value"] == remote["$it.value"]?.toString()?.hashCode()?.toString()) {
+                       journalLog.lastRemoteAttrHashes["$it.value"] == onIndex(remote, it.value)?.toString()?.hashCode()?.toString()) {
                         log.info "Attribute ${it.key} not changed, skipping"
                     }   else    {
                         "$mergingMethod"(local, remote, it.key, it.value, journalLog)
                         journalLog.lastAttrHashes["$it.key"] = local?."$it.key"?.toString()?.hashCode()?.toString()
-                        journalLog.lastRemoteAttrHashes["$it.value"] = remote["$it.value"]?.toString()?.hashCode()?.toString()
+                        journalLog.lastRemoteAttrHashes["$it.value"] = onIndex(remote, it.value)?.toString()?.hashCode()?.toString()
                         journalLog.save(flush:true)
                     }
                 }   catch(MissingPropertyException ex)    {
@@ -41,7 +42,11 @@ class MergingManager {
 
     private static void forceRemote(local, remote, String localAttr, String remoteAttr, JournalLog journalLog)    {
         if (onIndex(remote, remoteAttr)) {
-            local?."$localAttr" = onIndex(remote, remoteAttr)
+        	if(CachedConfigParser.mapping[local.class.name]["mappingTransformations"] && CachedConfigParser.mapping[local.class.name]["mappingTransformations"][localAttr])	{
+                local?."$localAttr" = CachedConfigParser.mapping[local.class.name]["mappingTransformations"][localAttr](onIndex(remote, remoteAttr))
+            }	else	{
+            	local?."$localAttr" = onIndex(remote, remoteAttr)
+        	}
         } else {
             log.info "Response $remoteAttr for attribute $localAttr is empty, skipping"
         }
@@ -49,29 +54,35 @@ class MergingManager {
 
     private static void forceLocal(local, remote, String localAttr, String remoteAttr, JournalLog journalLog)    {
         putOnIndex(remote, remoteAttr, local?."$localAttr")
-        //remote[remoteAttr]  = local?."$localAttr"
     }
 
     private static void preferLocal(local, remote, String localAttr, String remoteAttr, JournalLog journalLog)    {
         if(journalLog.lastAttrHashes["$localAttr"] == local?."$localAttr"?.toString()?.hashCode()?.toString() &&
-                onIndex(journalLog.lastRemoteAttrHashes, remoteAttr) != onIndex(remote, remoteAttr)?.toString()?.hashCode()?.toString()) {
+                journalLog.lastRemoteAttrHashes[remoteAttr] != onIndex(remote, remoteAttr)?.toString()?.hashCode()?.toString()) {
             if (onIndex(remote, remoteAttr)) {
-                local?."$localAttr" = onIndex(remote, remoteAttr)
+                if(CachedConfigParser.mapping[local.class.name]["mappingTransformations"] && CachedConfigParser.mapping[local.class.name]["mappingTransformations"][localAttr])	{
+                    local?."$localAttr" = CachedConfigParser.mapping[local.class.name]["mappingTransformations"][localAttr](onIndex(remote, remoteAttr))
+                }	else	{
+                    local?."$localAttr" = onIndex(remote, remoteAttr)
+                }
             } else {
                 log.info "Response $remoteAttr for attribute $localAttr is empty, skipping"
             }
         } else  {
             putOnIndex(remote, remoteAttr, local?."$localAttr")
-            //remote[remoteAttr]  = local?."$localAttr"
         }
     }
     private static void preferRemote(local, remote, String localAttr, String remoteAttr, JournalLog journalLog)    {
         if(journalLog.lastAttrHashes["$localAttr"] != local?."$localAttr"?.toString()?.hashCode()?.toString() &&
-           onIndex(journalLog.lastRemoteAttrHashes, remoteAttr) == onIndex(remote, remoteAttr)?.toString()?.hashCode()?.toString()) {
+           journalLog.lastRemoteAttrHashes[remoteAttr] == onIndex(remote, remoteAttr)?.toString()?.hashCode()?.toString()) {
             putOnIndex(remote, remoteAttr, local?."$localAttr")
         } else  {
             if (onIndex(remote,remoteAttr)) {
-                local?."$localAttr" = onIndex(remote, remoteAttr)
+                if(CachedConfigParser.mapping[local.class.name]["mappingTransformations"] && CachedConfigParser.mapping[local.class.name]["mappingTransformations"][localAttr])	{
+                    local?."$localAttr" = CachedConfigParser.mapping[local.class.name]["mappingTransformations"][localAttr](onIndex(remote, remoteAttr))
+                }	else	{
+                    local?."$localAttr" = onIndex(remote, remoteAttr)
+                }
             } else {
                 log.info "Response $remoteAttr for attribute $localAttr is empty, skipping"
             }
@@ -82,11 +93,18 @@ class MergingManager {
         def result = collection
         def indexes = dottedIndex.tokenize(".")
         if(dottedIndex == null || dottedIndex.empty)
-            return result
-        indexes.each{
-            if(!result?."$it")
-                return null
-            result = result[it]
+            return false
+        if(indexes.size() == 1) {
+            return result[indexes[0]]
+        }
+        result = result[indexes[0]] ?: false
+        if(!result)
+            return false
+        indexes[1..-1].each{
+            if(result?."$it" == null || result?."$it" == "null"  || !result?.containsKey(it))
+                return false
+            else
+                result = result[it]
         }
         return result
     }
