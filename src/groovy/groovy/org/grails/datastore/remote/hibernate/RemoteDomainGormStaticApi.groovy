@@ -80,9 +80,11 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
                 if (query && query.contains("And")) {
                     splitted = query.split("And")
                     splitter = "And"
-                } else if (query.contains("Or")) {
+                } else if (query && query.contains("Or")) {
                     splitted = query.split("Or")
                     splitter = "Or"
+                }   else    {
+                    splitted = query ? [query] : []
                 }
                 splitted.eachWithIndex { it, index ->
                     if (!it.contains("Contains")) {
@@ -117,6 +119,7 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
         def mc = persistentClass.getMetaClass()
         if(CachedConfigParser.isRemote(persistentClass))
             synchronize(methodName, args)
+
         def normalizedArgs = args.clone()
         if(argToSkip != -1) {
             normalizedArgs = normalizedArgs.toList()
@@ -133,7 +136,16 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
             }
             if(CachedConfigParser.isRemote(persistentClass))
                 synchronize(methodName, argumentsForMethod)
-            def result  = method.invoke(persistentClass, normalizedMethodName, normalizedArgumentsForMethod)
+            def result
+            if(normalizedMethodName == "findAll") {
+                println normalizedArgumentsForMethod[0]
+                if(normalizedArgumentsForMethod[0])
+                    result = super.list(normalizedArgumentsForMethod[0])
+                else
+                    result = super.list()
+            }
+            else
+                result  = method.invoke(persistentClass, normalizedMethodName, normalizedArgumentsForMethod)
             if(!containsAttribute.empty)    {
                 result = result.findAll {
                     contains(it?."$containsAttribute", argumentsForMethod[argToSkip])
@@ -141,8 +153,15 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
             }
             return result
         }
-
-        def result = method.invoke(persistentClass, normalizedMethodName, normalizedArgs)
+        def result
+        if(normalizedMethodName == "findAll") {
+            if(normalizedArgs[0])
+                result = super.list(normalizedArgs[0])
+            else
+                result = super.list()
+        }
+        else
+            result  = method.invoke(persistentClass, normalizedMethodName, normalizedArgs)
         if(!containsAttribute.empty)    {
             result = result.findAll {
                 contains(it?."$containsAttribute", args[argToSkip])

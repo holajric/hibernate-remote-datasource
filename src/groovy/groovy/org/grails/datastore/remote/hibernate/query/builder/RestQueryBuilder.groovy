@@ -35,6 +35,22 @@ class RestQueryBuilder implements QueryBuilder {
             return null
         }
         String endpoint = prefix.empty ? "endpoint" : prefix + "endpoint".capitalize()
+        String queryEndpoint = prefix.empty ? "queryEndpoint" : prefix + "queryEndpoint".capitalize()
+        desc.conditions.each    {
+            if(operation["endpoint ${it.conditionString()}"])   {
+                operation[queryEndpoint] = operation["endpoint ${it.conditionString()}"]
+                operation[endpoint] = operation["endpoint ${it.conditionString()}"]
+                if (it instanceof SimpleCondition) {
+                    operation[queryEndpoint] = operation[queryEndpoint].replaceAll(/\[:value(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(operation[queryEndpoint], "value", it.value)}")
+                    operation[endpoint] = operation[endpoint].replaceAll(/\[:value(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(operation[endpoint], "value", it.value)}")
+                }
+                if (it instanceof IntervalCondition) {
+                    operation[queryEndpoint] = operation[queryEndpoint].replaceAll(/\[:lowerBound(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(operation[queryEndpoint], "lowerBound", it.lowerBound)}").replaceAll(/\[:upperBound\](\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*/, "${Formatter.formatAttribute(operation[queryEndpoint], "upperBound", it.upperBound)}")
+                    operation[endpoint] = operation[endpoint].replaceAll(/\[:lowerBound(\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(operation[endpoint], "lowerBound", it.lowerBound)}").replaceAll(/\[:upperBound\](\|[a-zA-z1-9_-]*(:'?[a-zA-z1-9_-]*'?)*)*/, "${Formatter.formatAttribute(operation[endpoint], "upperBound", it.upperBound)}")
+                }
+            }
+        }
+
         if(!operation[endpoint])  {
             log.error "Operation $prefix endpoint is required"
             return null
