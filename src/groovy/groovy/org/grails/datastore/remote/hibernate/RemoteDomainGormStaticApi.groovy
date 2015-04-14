@@ -86,8 +86,14 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
                 }   else    {
                     splitted = query ? [query] : []
                 }
-                splitted.eachWithIndex { it, index ->
+                int counter = 0
+                splitted.each { it ->
                     if (!it.contains("Contains")) {
+                        if(it.contains("Between"))
+                            counter += 2
+                        else if(!it.contains("IsNotNull") && !it.contains("IsNull"))  {
+                            counter++
+                        }
                         if (first) {
                             normalizedMethodName += "By"
                             first = false
@@ -96,7 +102,7 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
                         }
                         normalizedMethodName += it
                     } else {
-                        argToSkip = index
+                        argToSkip = counter
                         containsAttribute = Introspector.decapitalize(it.replace("Contains", ""))
                     }
                 }
