@@ -2,6 +2,7 @@ package groovy.org.grails.datastore.remote.hibernate
 
 import groovy.org.grails.datastore.remote.hibernate.query.execution.QueryExecutor
 import groovy.util.logging.Log4j
+import org.apache.commons.lang.StringUtils
 import org.grails.datastore.gorm.finders.FinderMethod
 import org.springframework.transaction.PlatformTransactionManager
 import groovy.transform.CompileStatic
@@ -12,6 +13,8 @@ import groovy.org.grails.datastore.remote.hibernate.parsers.calling.CallingParse
 import groovy.org.grails.datastore.remote.hibernate.parsers.config.CachedConfigParser
 import groovy.org.grails.datastore.remote.hibernate.query.Operation
 import groovy.org.grails.datastore.remote.hibernate.sync.SynchronizationManager
+
+import java.beans.Introspector
 
 /**
  * Created by richard on 1.3.15.
@@ -64,7 +67,40 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
     @Override
     @CompileStatic(TypeCheckingMode.SKIP)
     def methodMissing(String methodName, Object args) {
-        FinderMethod method = gormDynamicFinders.find { FinderMethod f -> f.isMethodMatch(methodName) }
+        String normalizedMethodName = methodName
+        Integer argToSkip = -1
+        String splitter
+        String containsAttribute = ""
+        if (CachedConfigParser.isRemote(persistentClass)) {
+            if (methodName.contains("Contains")) {
+                def (operation, query) = methodName.split(/By/)
+                def splitted
+                boolean first = true
+                normalizedMethodName = operation
+                if (query && query.contains("And")) {
+                    splitted = query.split("And")
+                    splitter = "And"
+                } else if (query.contains("Or")) {
+                    splitted = query.split("Or")
+                    splitter = "Or"
+                }
+                splitted.eachWithIndex { it, index ->
+                    if (!it.contains("Contains")) {
+                        if (first) {
+                            normalizedMethodName += "By"
+                            first = false
+                        } else {
+                            normalizedMethodName += splitter
+                        }
+                        normalizedMethodName += it
+                    } else {
+                        argToSkip = index
+                        containsAttribute = Introspector.decapitalize(it.replace("Contains", ""))
+                    }
+                }
+            }
+        }
+        FinderMethod method = gormDynamicFinders.find { FinderMethod f -> f.isMethodMatch(normalizedMethodName) }
 
         if (!method) {
             if(methodName == "directGet")   {
@@ -81,15 +117,39 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
         def mc = persistentClass.getMetaClass()
         if(CachedConfigParser.isRemote(persistentClass))
             synchronize(methodName, args)
-
+        def normalizedArgs = args.clone()
+        if(argToSkip != -1) {
+            normalizedArgs = normalizedArgs.toList()
+            normalizedArgs.remove(argToSkip)
+            normalizedArgs = normalizedArgs as Object[]
+        }
         mc.static."$methodName" = { Object[] varArgs ->
             def argumentsForMethod = varArgs?.length == 1 && varArgs[0].getClass().isArray() ? varArgs[0] : varArgs
+            def normalizedArgumentsForMethod = argumentsForMethod.clone()
+            if(argToSkip != -1) {
+                normalizedArgumentsForMethod = normalizedArgumentsForMethod.toList()
+                normalizedArgumentsForMethod.remove(argToSkip)
+                normalizedArgumentsForMethod = normalizedArgumentsForMethod as Object[]
+            }
             if(CachedConfigParser.isRemote(persistentClass))
                 synchronize(methodName, argumentsForMethod)
-            method.invoke(delegate, methodName, argumentsForMethod)
+            def result  = method.invoke(persistentClass, normalizedMethodName, normalizedArgumentsForMethod)
+            if(!containsAttribute.empty)    {
+                result = result.findAll {
+                    contains(it?."$containsAttribute", argumentsForMethod[argToSkip])
+                }
+            }
+            return result
         }
 
-        return method.invoke(persistentClass, methodName, args)
+        def result = method.invoke(persistentClass, normalizedMethodName, normalizedArgs)
+        if(!containsAttribute.empty)    {
+            result = result.findAll {
+                contains(it?."$containsAttribute", args[argToSkip])
+            }
+        }
+
+        return result
 	}
 
     boolean synchronize(methodName, args)   {
@@ -99,5 +159,18 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
             return false
         }
         return QueryExecutor.executeFinderQuery(queryDescriptor)
+    }
+
+    boolean contains(attribute, value)  {
+        boolean isCollection = attribute instanceof Collection
+        boolean isList = attribute instanceof List
+        boolean isSet = attribute instanceof Set
+        boolean isArray = attribute != null && attribute.getClass().isArray()
+        boolean isMap = attribute instanceof Map
+        if(isCollection || isList || isSet || isArray)
+            return attribute.contains(value)
+        if(isMap)
+            return attribute.containsValue(value)
+        return attribute == value
     }
 }

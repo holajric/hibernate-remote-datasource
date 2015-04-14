@@ -29,7 +29,8 @@ class GormApiParser implements CallingParser {
         "Rlike",
         "Between",
         "IsNotNull",
-        "IsNull"
+        "IsNull",
+        "Contains"
     ]
 
     private static final List<String> ALLOWED_OPERATIONS = [
@@ -116,7 +117,6 @@ class GormApiParser implements CallingParser {
         }
         def queryDesc = new QueryDescriptor(entityName: instance.class.getName())
         queryDesc.operation = Operation."${operation.toUpperCase()}"
-        println instance
         if(operation == "update" || operation == "delete")   {
             if(instance?.id)
                 queryDesc.conditions.add(new SimpleCondition(attribute: "id", comparator: Operator.EQUALS, value: instance.id ))

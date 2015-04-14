@@ -11,7 +11,7 @@ import groovy.org.grails.datastore.remote.hibernate.query.SimpleCondition
  */
 @Log4j
 class ResponseFilter {
-    private static final List<String> ALLOWED_METHODS = ["inList", "lessThan", "lessThanEquals", "greaterThan", "greaterThanEquals", "like", "iLike", "rLike", "notEqual", "equals", "isNull", "isNotNull", "inRange", "between"]
+    private static final List<String> ALLOWED_METHODS = ["inList", "lessThan", "lessThanEquals", "greaterThan", "greaterThanEquals", "like", "iLike", "rLike", "notEqual", "equals", "isNull", "isNotNull", "inRange", "between", "contains"]
     boolean isValid(instance, QueryDescriptor desc) {
         boolean isValid = desc.conditionJoin != ConditionJoin.OR
         desc?.conditions?.find {
@@ -103,6 +103,19 @@ class ResponseFilter {
         attribute == value
     }
 
+    boolean contains(attribute, value)  {
+        boolean isCollection = attribute instanceof Collection
+        boolean isList = attribute instanceof List
+        boolean isSet = attribute instanceof Set
+        boolean isArray = attribute != null && attribute.getClass().isArray()
+        boolean isMap = attribute instanceof Map
+        if(isCollection || isList || isSet || isArray)
+            return attribute.contains(value)
+        if(isMap)
+            return attribute.containsValue(value)
+        return attribute == value
+    }
+
     boolean isNull(attribute)   {
         attribute == null
     }
@@ -118,6 +131,7 @@ class ResponseFilter {
     boolean between(attribute, lowerBound, upperBound)  {
         attribute >= lowerBound && attribute <= upperBound
     }
+
 
     String underscoreToCamelCase(String underscore){
         if(underscore?.getClass() != String || underscore.isAllWhitespace()){

@@ -17,5 +17,6 @@ public enum Operator {
     BETWEEN,
     IS_NOT_NULL,
     IS_NULL,
+    CONTAINS,
     EQUALS
 }
