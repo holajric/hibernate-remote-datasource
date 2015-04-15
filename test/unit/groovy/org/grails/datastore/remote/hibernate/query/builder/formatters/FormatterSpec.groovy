@@ -33,7 +33,7 @@ class FormatterSpec extends Specification {
         "testUrl"                            | "test"              | "small"               | "small"
         "testUrl/[:test|lowerCase]"          | "test"              | "BIG"                 | "big"
         "testUrl/[:test|lowerCase]"          | "else"              | "BIG"                 | "BIG"
-        "testUrl/[:test|capitalize:true]"    | "test"              | "small"               | "Small"
-        "testUrl/[:test]/[:date|date:Y-m-d]" | "date"              | new Date().toString() | new Date().format("Y-m-d")
+        "testUrl/[:test|capitalize<<true]"    | "test"              | "small"               | "Small"
+        "testUrl/[:test]/[:date|date<<Y-m-d]" | "date"              | new Date().toString() | new Date().format("Y-m-d")
     }
 }
