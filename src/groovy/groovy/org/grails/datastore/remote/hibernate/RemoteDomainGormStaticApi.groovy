@@ -144,8 +144,7 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
                 synchronize(methodName, argumentsForMethod)
             def result
             if(normalizedMethodName == "findAll") {
-                println normalizedArgumentsForMethod[0]
-                if(normalizedArgumentsForMethod[0])
+                if(normalizedArgumentsForMethod.size() > 0)
                     result = super.list(normalizedArgumentsForMethod[0])
                 else
                     result = super.list()
@@ -161,7 +160,7 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
         }
         def result
         if(normalizedMethodName == "findAll") {
-            if(normalizedArgs[0])
+            if(normalizedArgs.size() > 0)
                 result = super.list(normalizedArgs[0])
             else
                 result = super.list()

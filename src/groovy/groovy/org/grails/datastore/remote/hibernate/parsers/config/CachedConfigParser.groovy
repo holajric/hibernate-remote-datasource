@@ -173,12 +173,12 @@ class CachedConfigParser {
             tempOperation[it?.key] = it?.value
         }
         if(tempOperation?."endpoint") {
-            tempOperation?."endpoint" = tempOperation?."endpoint"?.replaceAll(/\[:operation(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."endpoint", "operation", desc.operation.toString())}")
-            tempOperation?."endpoint" = tempOperation?."endpoint"?.replaceAll(/\[:entityName(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."endpoint", "entityName", desc.entityName.tokenize('.')?.last())}")
+            tempOperation?."endpoint" = tempOperation?."endpoint"?.replaceAll(/\[:operation(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."endpoint", "operation", desc.operation.toString())}")
+            tempOperation?."endpoint" = tempOperation?."endpoint"?.replaceAll(/\[:entityName(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."endpoint", "entityName", desc.entityName.tokenize('.')?.last())}")
         }
         if(tempOperation?."queryEndpoint") {
-            tempOperation?."queryEndpoint" = tempOperation?."queryEndpoint"?.replaceAll(/\[:operation(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."queryEndpoint", "operation", desc.operation.toString())}")
-            tempOperation?."queryEndpoint" = tempOperation?."queryEndpoint"?.replaceAll(/\[:entityName(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."queryEndpoint", "entityName", desc.entityName.tokenize('.')?.last())}")
+            tempOperation?."queryEndpoint" = tempOperation?."queryEndpoint"?.replaceAll(/\[:operation(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."queryEndpoint", "operation", desc.operation.toString())}")
+            tempOperation?."queryEndpoint" = tempOperation?."queryEndpoint"?.replaceAll(/\[:entityName(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*\]/, "${Formatter.formatAttribute(tempOperation?."queryEndpoint", "entityName", desc.entityName.tokenize('.')?.last())}")
         }
         if(!mapping?."$desc.entityName"?."operations")
             mapping?."$desc.entityName"?."operations" = [:]

@@ -10,7 +10,7 @@ public abstract class Formatter {
     abstract Object format(Object input, List<Object> params)
 
     public static String formatAttribute(String url, String attribute, Object value)  {
-        def matches = (url =~ /\[:${attribute}((\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)+)\]/)
+        def matches = (url =~ /\[:${attribute}((\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)+)\]/)
         if(!matches)    {
             log.info "No formatters found in url ${url}"
             return value

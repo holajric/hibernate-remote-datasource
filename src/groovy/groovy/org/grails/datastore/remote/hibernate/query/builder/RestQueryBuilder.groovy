@@ -41,12 +41,12 @@ class RestQueryBuilder implements QueryBuilder {
                 operation[queryEndpoint] = operation["endpoint ${it.conditionString()}"]
                 operation[endpoint] = operation["endpoint ${it.conditionString()}"]
                 if (it instanceof SimpleCondition) {
-                    operation[queryEndpoint] = operation[queryEndpoint].replaceAll(/\[:value(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(operation[queryEndpoint], "value", it.value)}")
-                    operation[endpoint] = operation[endpoint].replaceAll(/\[:value(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(operation[endpoint], "value", it.value)}")
+                    operation[queryEndpoint] = operation[queryEndpoint].replaceAll(/\[:value(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*\]/, "${Formatter.formatAttribute(operation[queryEndpoint], "value", it.value)}")
+                    operation[endpoint] = operation[endpoint].replaceAll(/\[:value(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*\]/, "${Formatter.formatAttribute(operation[endpoint], "value", it.value)}")
                 }
                 if (it instanceof IntervalCondition) {
-                    operation[queryEndpoint] = operation[queryEndpoint].replaceAll(/\[:lowerBound(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(operation[queryEndpoint], "lowerBound", it.lowerBound)}").replaceAll(/\[:upperBound\](\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*/, "${Formatter.formatAttribute(operation[queryEndpoint], "upperBound", it.upperBound)}")
-                    operation[endpoint] = operation[endpoint].replaceAll(/\[:lowerBound(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(operation[endpoint], "lowerBound", it.lowerBound)}").replaceAll(/\[:upperBound\](\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*/, "${Formatter.formatAttribute(operation[endpoint], "upperBound", it.upperBound)}")
+                    operation[queryEndpoint] = operation[queryEndpoint].replaceAll(/\[:lowerBound(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*\]/, "${Formatter.formatAttribute(operation[queryEndpoint], "lowerBound", it.lowerBound)}").replaceAll(/\[:upperBound\](\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*/, "${Formatter.formatAttribute(operation[queryEndpoint], "upperBound", it.upperBound)}")
+                    operation[endpoint] = operation[endpoint].replaceAll(/\[:lowerBound(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*\]/, "${Formatter.formatAttribute(operation[endpoint], "lowerBound", it.lowerBound)}").replaceAll(/\[:upperBound\](\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*/, "${Formatter.formatAttribute(operation[endpoint], "upperBound", it.upperBound)}")
                 }
             }
         }
@@ -61,7 +61,7 @@ class RestQueryBuilder implements QueryBuilder {
         }
         if (isSingleQuery(desc, operation[endpoint])) {
             tempUrl += operation[endpoint]
-            tempUrl = tempUrl.replaceAll(/\[:${desc.conditions[0].attribute}(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempUrl, desc.conditions[0].attribute, desc.conditions[0].value)}")
+            tempUrl = tempUrl.replaceAll(/\[:${desc.conditions[0].attribute}(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*\]/, "${Formatter.formatAttribute(tempUrl, desc.conditions[0].attribute, desc.conditions[0].value)}")
         }   else    {
             tempUrl+= generateBatchQuery(desc, operation, prefix)
         }
@@ -121,9 +121,9 @@ class RestQueryBuilder implements QueryBuilder {
         if (CachedConfigParser.mapping[desc.entityName]?."queryMapping"?."${condition.conditionString()}") {
             tempUrl = CachedConfigParser.mapping[desc.entityName]?."queryMapping"?."${condition.conditionString()}"
             if (condition instanceof SimpleCondition)
-                tempUrl = tempUrl.replaceAll(/\[:value(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempUrl, "value", condition.value)}")
+                tempUrl = tempUrl.replaceAll(/\[:value(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*\]/, "${Formatter.formatAttribute(tempUrl, "value", condition.value)}")
             if (condition instanceof IntervalCondition)
-                tempUrl = tempUrl.replaceAll(/\[:lowerBound(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*\]/, "${Formatter.formatAttribute(tempUrl, "lowerBound", condition.lowerBound)}").replaceAll(/\[:upperBound\](\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_-]*'?)*)*/, "${Formatter.formatAttribute(tempUrl, "upperBound", condition.upperBound)}")
+                tempUrl = tempUrl.replaceAll(/\[:lowerBound(\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*\]/, "${Formatter.formatAttribute(tempUrl, "lowerBound", condition.lowerBound)}").replaceAll(/\[:upperBound\](\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)*/, "${Formatter.formatAttribute(tempUrl, "upperBound", condition.upperBound)}")
         }
         return tempUrl
     }
