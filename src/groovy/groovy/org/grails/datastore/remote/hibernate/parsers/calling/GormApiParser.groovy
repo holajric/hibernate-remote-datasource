@@ -18,10 +18,10 @@ class GormApiParser implements CallingParser {
 
     private static final List<String> CONDITIONS = [
         "InList",
-        "LessThan",
         "LessThanEquals",
-        "GreaterThan",
+        "LessThan",
         "GreaterThanEquals",
+        "GreaterThan",
         "Like",
         "Ilike",
         "NotEqual",

@@ -5,10 +5,10 @@ package groovy.org.grails.datastore.remote.hibernate.query
  */
 public enum Operator {
     IN_LIST,
-    LESS_THAN,
     LESS_THAN_EQUALS,
-    GREATER_THAN,
+    LESS_THAN,
     GREATER_THAN_EQUALS,
+    GREATER_THAN,
     LIKE,
     ILIKE,
     NOT_EQUAL,
