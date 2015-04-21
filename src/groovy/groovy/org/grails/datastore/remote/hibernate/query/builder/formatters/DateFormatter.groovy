@@ -19,7 +19,7 @@ class DateFormatter extends Formatter {
             return input
         }
         try {
-            return (Date.parseToStringDate(input.toString())).format(params[0])
+            return (Date.parseToStringDate("$input")).format(params[0])
         } catch(ParseException ex)  {
             log.warn "Invalid input, returning unchanged input."
             return input
