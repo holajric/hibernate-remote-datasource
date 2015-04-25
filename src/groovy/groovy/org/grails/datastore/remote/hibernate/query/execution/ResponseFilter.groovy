@@ -28,7 +28,7 @@ class ResponseFilter {
             } else {
                 try {
                     def response = instance?."${it.attribute}"
-                    if(CachedConfigParser.mapping[desc.entityName]["mappingTransformations"] && CachedConfigParser.mapping[desc.entityName]["mappingTransformations"][it.attribute]) {
+                    if(CachedConfigParser.mapping[desc.entityName]?."mappingTransformations" && CachedConfigParser.mapping[desc.entityName]["mappingTransformations"][it.attribute]) {
                         response = CachedConfigParser.mapping[desc.entityName]["mappingTransformations"][it.attribute](instance?."${it.attribute}")
                     }
                     if (it instanceof IntervalCondition) {

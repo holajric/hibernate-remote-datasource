@@ -19,36 +19,31 @@ class RestDataSourceConnector implements DataSourceConnector {
     final static String ALLOWED_METHODS = ["get", "post", "put", "delete", "patch", "trace", "head", "options"]
 
     boolean doAction(RemoteQuery query, Authenticator auth = null)  {
-        def methodName = sanitizeInput(query, auth)
-        if(methodName == false)
-            return false
-        def requestBody = auth?.getAuthenticatedBody(query) ?: {}
-        def response = rest."$methodName"(query?.url, requestBody)
-        log.info "${response.getStatus()} $query"
+        def response = makeCall(query, auth) {}
         return (response instanceof RestResponse)
     }
 
-    List<JSONObject> read(RemoteQuery query, String className, Authenticator auth = null)  {
-        def methodName = sanitizeInput(query, auth)
-        if(methodName == false)
-            return null
-        def requestBody = auth?.getAuthenticatedBody(query) ?: {}
-        def response = rest."$methodName"(query.url, requestBody)
-        log.info "${response?.getStatus()} $query"
+    List<JSONObject> read(RemoteQuery query, String className, Authenticator auth = null) {
+        def response = makeCall(query, auth) {}
         return sanitizeResponse(response, className)
     }
 
     List<JSONObject> write(RemoteQuery query, String className, Authenticator auth = null)   {
-        def methodName = sanitizeInput(query, auth)
-        if(methodName == false)
-            return null
-        def requestBody = auth?.getAuthenticatedBody(query) ?: {
+        def response = makeCall(query, auth) {
             json query?.dataJson?.toString()
             contentType "application/json"
         }
-        def response = rest."$methodName"(query?.url, requestBody)
-        log.info "${response?.getStatus()} $query"
         return sanitizeResponse(response, className)
+    }
+
+    private def makeCall(RemoteQuery query, Authenticator auth = null, Closure defaultRequest)  {
+        def methodName = sanitizeInput(query, auth)
+        if(methodName == false)
+            return null
+        def requestBody = auth?.getAuthenticatedBody(query) ?: defaultRequest
+        def response = rest."$methodName"(query.url, requestBody)
+        log.info "${response?.getStatus()} $query"
+        return response
     }
 
     private Object sanitizeInput(RemoteQuery query, Authenticator auth = null )  {

@@ -13,7 +13,7 @@ class HibernateRemoteDatasourceGrailsPlugin {
     // resources that are excluded from plugin packaging
     def pluginExcludes = [
         "grails-app/views/error.gsp",
-        "grails-app/domain/developmnent/**",
+        "grails-app/domain/development/**",
         "grails-app/controllers/development/**"
     ]
 
