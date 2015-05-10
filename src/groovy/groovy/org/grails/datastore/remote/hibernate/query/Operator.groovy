@@ -1,7 +1,8 @@
 package groovy.org.grails.datastore.remote.hibernate.query
 
 /**
- * Created by richard on 18.2.15.
+ * Enumeration representing operators in dynamic finder, or
+ * criterias for attribute to make condition satisfied.
  */
 public enum Operator {
     IN_LIST,

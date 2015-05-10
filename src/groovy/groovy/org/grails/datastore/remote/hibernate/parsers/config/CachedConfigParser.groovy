@@ -16,16 +16,31 @@ import org.codehaus.groovy.grails.commons.DefaultGrailsDomainClass
 import groovy.org.grails.datastore.remote.hibernate.auth.Authenticator
 import groovy.org.grails.datastore.remote.hibernate.query.builder.formatters.Formatter
 
+/**
+ * Utility class used for accessing configuration and caching it
+ * for higher effectivity.
+ */
 @Log4j
 @Transactional
 class CachedConfigParser {
+    /** Cached data source connectors indexed by domain name **/
     static Map<String, DataSourceConnector> dataSourceConnector = new HashMap<String, DataSourceConnector>()
+    /** Cached query builders indexed by domain name **/
     static Map<String, QueryBuilder> queryBuilder = new HashMap<String, QueryBuilder>()
+    /** Cached authenticators indexed by domain name and operation **/
     static Map<String, Authenticator> authenticator = new HashMap<String, Authenticator>()
+    /** Cached configuration object indexed by domain name **/
     static Map<String, Object> mapping  = new HashMap<String, Object>()
+    /** Cached attribute mapping indexed by domain name **/
     static Map<String, Map<String, String>> attributeMapping  = new HashMap<String, Map<String, String>>()
+    /** Cached authentication parameters indexed by domain name and operation **/
     static Map<String, Map<String, Object>> authenticationParams  = new HashMap<String, Map<String, Object>>()
 
+    /**
+     * Checks if entity is remote and if it is it loads its configuration.
+     * @param entity to check
+     * @return true or false
+     */
     static boolean isRemote(Class entity)  {
         if(!mapping[entity.getName()]) {
             mapping[entity.getName()] = GrailsClassUtils.getStaticPropertyValue(entity, 'remoteMapping')
@@ -45,6 +60,11 @@ class CachedConfigParser {
         return true
     }
 
+    /**
+     * Gets DataSourceConnector based on configuration for query
+     * @param desc query descriptor
+     * @return instance of data source connector
+     */
     static DataSourceConnector getDataSourceConnector(QueryDescriptor desc)    {
         if(!isValidDescriptor(desc))
             return null
@@ -62,6 +82,11 @@ class CachedConfigParser {
         return dataSourceConnector[desc.entityName]
     }
 
+    /**
+     * Gets QueryBuilder based on configuration for query
+     * @param desc query descriptor
+     * @return instance of query builder
+     */
     static QueryBuilder getQueryBuilder(QueryDescriptor desc)  {
         if(!isValidDescriptor(desc))
             return null
@@ -79,6 +104,11 @@ class CachedConfigParser {
         return queryBuilder[desc.entityName]
     }
 
+    /**
+     * Gets Authenticator based on configuration for query
+     * @param desc query descriptor
+     * @return instance of authenticator
+     */
     static Authenticator getAuthenticator(QueryDescriptor desc) {
         if(!isValidDescriptor(desc))
             return null
@@ -100,6 +130,12 @@ class CachedConfigParser {
         return authenticator["${desc.entityName} ${desc.operation}"]
     }
 
+    /**
+     * Gets authentication params based on configuration for entity and operation
+     * @param entity entity to be authenticated
+     * @param operation operation to be authenticated
+     * @return instance map of authentication params
+     */
     static Map<String, Object> getAuthenticationParams(String entity, Operation operation) {
         if(!authenticationParams["${entity} ${operation}"])  {
             authenticationParams["${entity} ${operation}"] = (mapping?."$entity"?."operations"?.getAt(operation)?."authenticationParams"
@@ -110,12 +146,23 @@ class CachedConfigParser {
         return authenticationParams["${entity} ${operation}"]
     }
 
+    /**
+     * Checks if operation is allowed from configuration
+     * @param desc query descriptor
+     * @return true or false
+     */
     static boolean isOperationAllowed(QueryDescriptor desc) {
         if(!isValidDescriptor(desc))
             return false
         return (!mapping?.containsKey(desc.entityName) || !mapping?."${desc.entityName}"?.containsKey("allowed") || mapping?."${desc.entityName}"?."allowed" == null || mapping[desc.entityName]["allowed"].contains(desc.operation))
     }
 
+    /**
+     * Checks if given descriptor is valid, that means, it has
+     * non empty entityName and also it has operation.
+     * @param desc query descriptor to be checked
+     * @return true or false
+     */
     private static boolean isValidDescriptor(QueryDescriptor desc) {
         if (!desc?.entityName || desc?.entityName?.empty) {
             log.error "Descriptor entityName is required"
@@ -128,6 +175,11 @@ class CachedConfigParser {
         return true
     }
 
+    /**
+     * Gets attribute mapping based on configuration for query
+     * @param desc query descriptor
+     * @return attribute mapping
+     */
     static Map<String, String> getAttributeMap(QueryDescriptor desc)   {
         if(!isValidDescriptor(desc))
             return null
@@ -149,6 +201,11 @@ class CachedConfigParser {
         return attributeMapping[desc.entityName]
     }
 
+    /**
+     * Gets Map containing setting for operation based on query.
+     * @param desc query descriptor
+     * @return Map with operation settings
+     */
     static Map<String, Object> getQueryOperation(QueryDescriptor desc)   {
         if(!isOperationAllowed(desc))   {
             println "Operation ${desc.operation} for ${desc.entityName} is not allowed"

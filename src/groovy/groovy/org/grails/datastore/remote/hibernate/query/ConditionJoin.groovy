@@ -1,7 +1,10 @@
 package groovy.org.grails.datastore.remote.hibernate.query
 
 /**
- * Created by richard on 2.3.15.
+ * Enumeration representing relation between conditons
+ * AND - All conditions must be satisfied
+ * OR - At least one condition must be satisfied
+ * NONE - There is only one or no condition
  */
 public enum ConditionJoin {
     NONE,

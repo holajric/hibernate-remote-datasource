@@ -3,12 +3,28 @@ package groovy.org.grails.datastore.remote.hibernate.query.builder.formatters
 import groovy.util.logging.Log4j
 
 /**
- * Created by richard on 1.4.15.
+ * Base class for all formatters, providing interface and static method
+ * to delegate calling to proper formatters.
  */
 @Log4j
 public abstract class Formatter {
+    /**
+     * Formating method, executes formatter functionality itself.
+     * @param input input to be formatted
+     * @param params parameters for formatter
+     * @return formatted input
+     */
     abstract Object format(Object input, List<Object> params)
 
+    /**
+     * Static method that parses attribute from url and then executes its formatters
+     * first one has given value as an input, others have output of previous formatter
+     * calling. Method returns value of last formatter.
+     * @param url given remote source URL
+     * @param attribute attribute that should be parsed from URL
+     * @param value value of attribute
+     * @return attribute value after execution of all formatters
+     */
     public static String formatAttribute(String url, String attribute, Object value)  {
         def matches = (url =~ /\[:${attribute}((\|[a-zA-z1-9_-]*(<<'?[a-zA-z1-9_:' .-]*'?)*)+)\]/)
         if(!matches)    {

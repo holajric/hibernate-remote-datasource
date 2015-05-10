@@ -5,10 +5,16 @@ import groovy.util.logging.Log4j
 import java.text.ParseException
 
 /**
- * Created by richard on 1.4.15.
+ * Formatter that converts given Date in string form to other format in string
  */
 @Log4j
 class DateFormatter extends Formatter {
+    /**
+     * Converts input to date string in format given by first param
+     * @param input date in string form
+     * @param params [0] - format to convert in SimpleDateFormat
+     * @return formatted date string
+     */
     Object format(Object input, List<Object> params) {
         if(input == null)  {
             log.warn "Input not provided returning empty value"

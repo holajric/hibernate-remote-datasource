@@ -5,10 +5,16 @@ import groovy.util.logging.Log4j
 import java.beans.Introspector
 
 /**
- * Created by richard on 1.4.15.
+ * Formatter that capitalize or decapitalize string
  */
 @Log4j
 class CapitalizeFormatter extends Formatter {
+    /**
+     * Capitalize or decapitalize string based on first parameter.
+     * @param input string to be formatted
+     * @param params [0] - true = capitalize, false = decapitalize
+     * @return
+     */
     Object format(Object input, List<Object> params) {
         if(!input || !(input instanceof String))  {
             log.warn "Input not provided returning empty value"

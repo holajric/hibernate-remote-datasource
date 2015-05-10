@@ -11,11 +11,14 @@ import groovy.org.grails.datastore.remote.hibernate.query.SimpleCondition
 import java.beans.Introspector
 
 /**
- * Created by richard on 18.2.15.
+ * This class servers as a parser for GORM API methods - save,
+ * delete, get, list and dynamic finders and transforms them
+ * into query descriptors.
  */
 @Log4j
 class GormApiParser implements CallingParser {
 
+    /** List of allowed finder conditions **/
     private static final List<String> CONDITIONS = [
         "InList",
         "LessThanEquals",
@@ -33,12 +36,14 @@ class GormApiParser implements CallingParser {
         "Contains"
     ]
 
+    /** List of allowed types of operations **/
     private static final List<String> ALLOWED_OPERATIONS = [
             "create",
             "update",
             "delete"
     ]
 
+    /** List of allowed type of finders **/
     private static final List<String> ALLOWED_FINDERS = [
             "find",
             "findAll",
@@ -46,6 +51,13 @@ class GormApiParser implements CallingParser {
             "list"
     ]
 
+    /**
+     * This method parses dynamic finders based on method name into query descriptors.
+     * @param clazz name of class method is called on
+     * @param finder name of finder
+     * @param params method params
+     * @return parsed query descriptor
+     */
     QueryDescriptor parseFinder(String clazz, String finder, params)   {
         if(!(finder instanceof String) || !(clazz instanceof String)) {
             log.error "Finder and className have to be strings"
@@ -106,6 +118,12 @@ class GormApiParser implements CallingParser {
         return queryDesc
     }
 
+    /**
+     * This method parses instance - modifying methods save and delete into query descriptors
+     * @param operation type of operation
+     * @param instance instance method is called on
+     * @return parsed query descriptor
+     */
     QueryDescriptor parseInstanceMethod(String operation, instance) {
         if(instance == null)    {
             log.error "Instance is required"

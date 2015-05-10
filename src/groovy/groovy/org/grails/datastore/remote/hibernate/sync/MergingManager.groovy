@@ -5,10 +5,21 @@ import groovy.util.logging.Log4j
 import groovy.org.grails.datastore.remote.hibernate.query.QueryDescriptor
 
 /**
- * Created by richard on 5.4.15.
+ * This class provides method for solving data conflicts by local and remote
+ * data merges with usage of different strategies.
  */
 @Log4j
 class MergingManager {
+    /**
+     * Merge local and remote data object (changes them both to contain same data)
+     * according to chosen merging strategy.
+     * @param local local data object (as appropriate entity)
+     * @param remote remote data object (as Map)
+     * @param mapping name mapping between local and remote attributes
+     * @param strategy chosen merging strategy
+     * @param desc query descriptor
+     * @return success or failure of merging
+     */
     public static boolean merge(local, remote, mapping, MergingStrategy strategy, QueryDescriptor desc)  {
         def mergingMethod = strategy.toString().toLowerCase()
         if(!mergingMethod || mergingMethod.isAllWhitespace()){
@@ -40,6 +51,14 @@ class MergingManager {
         }
     }
 
+    /**
+     * Merges given attributes based on journalLog using FORCE_REMOTE merging strategy
+     * @param local local data object (as appropriate entity)
+     * @param remote remote data object (as Map)
+     * @param localAttr name of local attribute to be merged
+     * @param remoteAttr name of remote attribute to be merged
+     * @param journalLog journalLog for this instance
+     */
     private static void forceRemote(local, remote, String localAttr, String remoteAttr, JournalLog journalLog)    {
         if (onIndex(remote, remoteAttr)) {
         	if(CachedConfigParser.mapping[local.class.name]["mappingTransformations"] && CachedConfigParser.mapping[local.class.name]["mappingTransformations"][localAttr])	{
@@ -52,10 +71,26 @@ class MergingManager {
         }
     }
 
+    /**
+     * Merges given attributes based on journalLog using FORCE_LOCAL merging strategy
+     * @param local local data object (as appropriate entity)
+     * @param remote remote data object (as Map)
+     * @param localAttr name of local attribute to be merged
+     * @param remoteAttr name of remote attribute to be merged
+     * @param journalLog journalLog for this instance
+     */
     private static void forceLocal(local, remote, String localAttr, String remoteAttr, JournalLog journalLog)    {
         putOnIndex(remote, remoteAttr, local?."$localAttr")
     }
 
+    /**
+     * Merges given attributes based on journalLog using PREFER_LOCAL merging strategy
+     * @param local local data object (as appropriate entity)
+     * @param remote remote data object (as Map)
+     * @param localAttr name of local attribute to be merged
+     * @param remoteAttr name of remote attribute to be merged
+     * @param journalLog journalLog for this instance
+     */
     private static void preferLocal(local, remote, String localAttr, String remoteAttr, JournalLog journalLog)    {
         if(journalLog.lastAttrHashes["$localAttr"] == local?."$localAttr"?.toString()?.hashCode()?.toString() &&
                 journalLog.lastRemoteAttrHashes[remoteAttr] != onIndex(remote, remoteAttr)?.toString()?.hashCode()?.toString()) {
@@ -72,6 +107,15 @@ class MergingManager {
             putOnIndex(remote, remoteAttr, local?."$localAttr")
         }
     }
+
+    /**
+     * Merges given attribute based on journalLog using PREFER_REMOTE merging strategy
+     * @param local local data object (as appropriate entity)
+     * @param remote remote data object (as Map)
+     * @param localAttr name of local attribute to be merged
+     * @param remoteAttr name of remote attribute to be merged
+     * @param journalLog journalLog for this instance
+     */
     private static void preferRemote(local, remote, String localAttr, String remoteAttr, JournalLog journalLog)    {
         if(journalLog.lastAttrHashes["$localAttr"] != local?."$localAttr"?.toString()?.hashCode()?.toString() &&
            journalLog.lastRemoteAttrHashes[remoteAttr] == onIndex(remote, remoteAttr)?.toString()?.hashCode()?.toString()) {
@@ -89,6 +133,13 @@ class MergingManager {
         }
     }
 
+    /**
+     * Gets data from multiple indexed position in collection
+     * identified by index in dotted format.
+     * @param collection collection data should be retrieved from
+     * @param dottedIndex position identifier in pattern index1.index2
+     * @return value on position or false if there is no value
+     */
     private static Object onIndex(collection, String dottedIndex)   {
         def result = collection
         def indexes = dottedIndex.tokenize(".")
@@ -109,6 +160,13 @@ class MergingManager {
         return result
     }
 
+    /**
+     * Puts given data on multiple indexed position in collection
+     * identified by index in dotted format.
+     * @param collection collection data should be inserted in
+     * @param dottedIndex position identifier in pattern index1.index2
+     * @param value value to be inserted
+     */
     private static void putOnIndex(collection, String dottedIndex, value)   {
         def ref = collection
         if(dottedIndex == null || dottedIndex.empty)

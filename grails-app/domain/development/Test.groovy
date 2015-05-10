@@ -11,6 +11,13 @@ class Test {
             "baseUrl": "http://localhost:8080/development/",
             /*"sourceType": "Rest",
             "queryType": "Rest",*/
+            //"supportedParams": ["max"],
+            "local": ["test", "number"],
+            //"authetication": "Token",
+            /*"authenticationParams": [
+                "token": "asdasa4a5sd45qcyx5a4sd5"
+            ],*/
+            "allowed": [ Operation.READ, Operation.CREATE, Operation.UPDATE, Operation.DELETE ],
             "generalDefault": [
                     "endpoint": "remoteTest/[:operation|lowerCase]/[:id]"
             ],
@@ -23,13 +30,6 @@ class Test {
             /*"paramMapping": [
                     "max": "limit"
             ],*/
-            //"supportedParams": ["max"],
-            "local": ["test", "number"],
-            //"authetication": "Token",
-            /*"authenticationParams": [
-                "token": "asdasa4a5sd45qcyx5a4sd5"
-            ],*/
-            "allowed": [ Operation.READ, Operation.CREATE, Operation.UPDATE, Operation.DELETE ],
             "operations":[
                     (Operation.READ):[
                         "endpoint": "remoteTest/show/[:id]",

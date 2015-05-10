@@ -12,7 +12,18 @@ import groovy.org.grails.datastore.remote.hibernate.query.SimpleCondition
  */
 @Log4j
 class ResponseFilter {
+    /**
+     * List of allowed methods - operation with attribute
+     */
     private static final List<String> ALLOWED_METHODS = ["inList", "lessThan", "lessThanEquals", "greaterThan", "greaterThanEquals", "like", "iLike", "rLike", "notEqual", "equals", "isNull", "isNotNull", "inRange", "between", "contains"]
+
+    /**
+     * Checks if given instance met all descriptor conditions,
+     * so if it is valid.
+     * @param instance instance to be validated
+     * @param desc descriptor of executed query
+     * @return if given instance is valid by query descriptor
+     */
     boolean isValid(instance, QueryDescriptor desc) {
         boolean isValid = desc.conditionJoin != ConditionJoin.OR
         desc?.conditions?.find {
@@ -67,46 +78,112 @@ class ResponseFilter {
         return isValid
     }
 
+    /**
+     * Helper method checking if list contains attribute
+     * @param attribute
+     * @param list
+     * @return logical result of operation
+     */
     boolean inList(attribute, list) {
         list.contains(attribute)
     }
 
+    /**
+     * Helper method checking if attribute is smaller than value
+     * @param attribute
+     * @param value
+     * @return logical result of operation
+     */
     boolean lessThan(attribute, value) {
         attribute < value
     }
 
+    /**
+     * Helper method checking if attribute is smaller or equal to value
+     * @param attribute
+     * @param value
+     * @return logical result of operation
+     */
     boolean lessThanEquals(attribute, value) {
         attribute <= value
     }
 
+    /**
+     * Helper method checking if attribute is greater than value
+     * @param attribute
+     * @param value
+     * @return logical result of operation
+     */
     boolean greaterThan(attribute, value) {
         attribute > value
     }
 
+    /**
+     * Helper method checking if attribute is greater than or equal to value
+     * @param attribute
+     * @param value
+     * @return logical result of operation
+     */
     boolean greaterThanEquals(attribute, value) {
         attribute >= value
     }
 
+    /**
+     * Helper method checking if attribute matches regex (case sensitive)
+     * @param attribute
+     * @param regex regular expression
+     * @return logical result of operation
+     */
     boolean like(attribute, regex)  {
         attribute ==~ regex
     }
 
+    /**
+     * Helper method checking if attribute matches regex (case insensitive)
+     * @param attribute
+     * @param regex regular expression
+     * @return logical result of operation
+     */
     boolean iLike(attribute, regex)  {
         attribute.toUpperCase() ==~ regex.toUpperCase()
     }
 
+    /**
+     * Helper method checking if attribute matches regex (case sensitive)
+     * @param attribute
+     * @param regex regular expression
+     * @return logical result of operation
+     */
     boolean rLike(attribute, regex)  {
         attribute ==~ regex
     }
 
+    /**
+     * Helper method checking if attribute is not equal value
+     * @param attribute
+     * @param value
+     * @return logical result of operation
+     */
     boolean notEqual(attribute, value) {
         attribute != value
     }
 
+    /**
+     * Helper method checking if attribute is equal value
+     * @param attribute
+     * @param value
+     * @return logical result of operation
+     */
     boolean equals(attribute, value)   {
         attribute == value
     }
 
+    /**
+     * Helper method checking if attribute contains value
+     * @param attribute
+     * @param value
+     * @return logical result of operation
+     */
     boolean contains(attribute, value)  {
         boolean isCollection = attribute instanceof Collection
         boolean isList = attribute instanceof List
@@ -120,23 +197,51 @@ class ResponseFilter {
         return attribute == value
     }
 
+    /**
+     * Helper method checking if attribute is null
+     * @param attribute
+     * @return logical result of operation
+     */
     boolean isNull(attribute)   {
         attribute == null
     }
 
+    /**
+     * Helper method checking if attribute isn't null
+     * @param attribute
+     * @return logical result of operation
+     */
     boolean isNotNull(attribute)   {
         attribute != null
     }
 
+    /**
+     * Helper method checking if attribute is in range
+     * @param attribute
+     * @param range
+     * @return logical result of operation
+     */
     boolean inRange(attribute, range)   {
         range.contains(attribute)
     }
 
+    /**
+     * Helper method checking if attribute is between lowerBound and upperBound
+     * @param attribute
+     * @param lowerBound
+     * @param upperBound
+     * @return logical result of operation
+     */
     boolean between(attribute, lowerBound, upperBound)  {
         attribute >= lowerBound && attribute <= upperBound
     }
 
-
+    /**
+     * Helper method, converting string in UNDERSCORE_NOTATION to string
+     * in camelCase notation
+     * @param underscore given string to be converted
+     * @return string in camelCase notation
+     */
     String underscoreToCamelCase(String underscore){
         if(underscore?.getClass() != String || underscore.isAllWhitespace()){
             return ""

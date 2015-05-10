@@ -13,10 +13,22 @@ import groovy.org.grails.datastore.remote.hibernate.sync.SynchronizationManager
 import groovy.org.grails.datastore.remote.hibernate.sync.JournalLog
 import groovy.org.grails.datastore.remote.hibernate.sync.SynchLog
 
+/**
+ * Class coordinating whole process of remote data synchronisation. It uses rest of plugin
+ * classes to execute queries on remote data source and synchronise acquired data with local
+ * instances.
+ */
 @Log4j
 @Transactional
 class QueryExecutor {
 
+    /**
+     * Method that executes whole process of finder query (get, list, dynamic finders)
+     * synchronisation. It includes building query, connecting to datasource,
+     * and processing response. It is point where rest of functionality is called from.
+     * @param desc descriptor of executed query
+     * @return success or failure
+     */
     static boolean executeFinderQuery(QueryDescriptor desc)  {
         SynchLog synchLog = SynchLog.findByQuery(desc.toString().hashCode().toString())
         if(synchLog && !synchLog.isFinished)    {
@@ -82,6 +94,14 @@ class QueryExecutor {
         return processingResult
     }
 
+    /**
+     * Method that executes whole process of instance query (save, delete,...)
+     * synchronisation. It includes building query, connecting to datasource,
+     * and processing response. It is point where rest of functionality is called from.
+     * @param desc descriptor of executed query
+     * @param instance instance on which is query executed
+     * @return success or failure
+     */
     static boolean executeInstanceQuery(QueryDescriptor desc, Object instance)   {
         SynchLog synchLog
         if(desc.operation == Operation.UPDATE)  {
@@ -196,6 +216,12 @@ class QueryExecutor {
         return processResponses(responses, desc, instance)
     }
 
+    /**
+     * Checks if given descriptor is valid, that means, it has
+     * non empty entityName and also it has operation.
+     * @param desc query descriptor to be checked
+     * @return true or false
+     */
     private static boolean isValidDescriptor(QueryDescriptor desc)    {
         if(!desc.entityName || desc.entityName.empty)   {
             log.error "Descriptor entityName is required"
@@ -210,6 +236,14 @@ class QueryExecutor {
         return true
     }
 
+    /**
+     * Filters which responses should be builded with instances. It uses ResponseFilter
+     * to skip those, which not fits query and JournalLog to skip those that haven't change.
+     * @param responses list of JSONObjects acquired from remote data source
+     * @param desc executed query descriptor
+     * @param instance instance to be synchronized if is given (nullable)
+     * @return success or failure
+     */
     private static boolean processResponses(List<JSONObject> responses, QueryDescriptor desc, instance = null)   {
         def mapping
         if((mapping = CachedConfigParser.getAttributeMap(desc)) == null)    {
@@ -278,6 +312,15 @@ class QueryExecutor {
         return true
     }
 
+    /**
+     * Method that takes single instance and data object from remote data
+     * and build synchronised instance from them (optionally also updates remote source).
+     * @param mapping mapping between remote and local data
+     * @param response response containing data from remote data source
+     * @param instanceTemp local instance of object
+     * @param desc executed query descriptor
+     * @return success or failure
+     */
     private static boolean buildInstance(mapping, response, instanceTemp, QueryDescriptor desc) {
         if(instanceTemp == null)    {
             log.error "Target instance is required"
@@ -344,7 +387,13 @@ class QueryExecutor {
         }
     }
 
-
+    /**
+     * Gets data from multiple indexed position in collection
+     * identified by index in dotted format.
+     * @param collection collection data should be retrieved from
+     * @param dottedIndex position identifier in pattern index1.index2
+     * @return value on position or false if there is no value
+     */
     private static Object onIndex(collection, String dottedIndex)   {
         def result = collection
         if(dottedIndex == null || dottedIndex.empty)

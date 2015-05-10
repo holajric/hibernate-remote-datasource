@@ -17,17 +17,37 @@ import groovy.org.grails.datastore.remote.hibernate.sync.SynchronizationManager
 import java.beans.Introspector
 
 /**
- * Created by richard on 1.3.15.
+ * This class is part of GORM API implementation. Static API implements
+ * static methods, thus mostly selection queries like get, list, getAll,
+ * dynamic finders (these are reimplemented in this plugin) or criteria
+ * queries and others. Unlike original implementation, which this implementation
+ * extends, this contains synchronisation with remote data source.
  */
 @Log4j
 class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
+    /** Calling parser that is used for parsing method callings **/
     CallingParser callingParser
+
+    /**
+     * Constructor initialises instance variables and set them to proper values.
+     * @param persistentClass class enhanced by API
+     * @param datastore datastore that is linked with enhanced class
+     * @param finders list of proper dynamic finder definitions
+     * @param classLoader class used for dynamic loading of classes
+     * @param transactionManager application transaction manager
+     * @param callingParser calling parser that is used for parsing method callings
+     */
     RemoteDomainGormStaticApi(Class<D> persistentClass, HibernateDatastore datastore, List<FinderMethod> finders, ClassLoader classLoader, PlatformTransactionManager transactionManager, CallingParser callingParser) {
         super(persistentClass, datastore, finders, classLoader, transactionManager)
         this.callingParser = callingParser
     }
 
-
+    /**
+     * Modified get method - gets instance by id, but in case domain is
+     * remote, synchronization is executed before getting instance.
+     * @param id id of instance that should be retrieved
+     * @return instance with given id or null if not found
+     */
     @Override
     public D get(Serializable id)   {
         if(CachedConfigParser.isRemote(persistentClass)) {
@@ -43,6 +63,12 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
         return super.get(id)
     }
 
+    /**
+     * Modified getAll method - gets all instances of domain class,
+     * but in case domain is remote, synchronization is executed
+     * before getting instances.
+     * @return list of instances
+     */
     @Override
     List<D> getAll() {
         if(CachedConfigParser.isRemote(persistentClass))
@@ -50,6 +76,13 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
         return super.getAll()
     }
 
+    /**
+     * Modified list method - gets all instances of domain class,
+     * but in case domain is remote, synchronization is executed
+     * before getting instances.
+     * @param params parameters for method (sort, order, max, ...)
+     * @return list of instances
+     */
     @Override
     List<D> list(Map params) {
         if(CachedConfigParser.isRemote(persistentClass))
@@ -57,6 +90,12 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
         super.list(params)
     }
 
+    /**
+     * Modified list method - gets all instances of domain class,
+     * but in case domain is remote, synchronization is executed
+     * before getting instances.
+     * @return list of instances
+     */
     @Override
     List<D> list() {
         if(CachedConfigParser.isRemote(persistentClass))
@@ -64,6 +103,14 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
         super.list()
     }
 
+    /**
+     * Modified methodMissing method, it procceses and dynamicaly executes dynamic finders,
+     * when they are called for the first time, but in case domain is remote,
+     * synchronization is executed before executing finder.
+     * @param methodName name of method, that couldn't be found - finder
+     * @param args arguments of method, that couldn't be found
+     * @return result of dynamic called method
+     */
     @Override
     @CompileStatic(TypeCheckingMode.SKIP)
     def methodMissing(String methodName, Object args) {
@@ -176,6 +223,13 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
         return result
 	}
 
+    /**
+     * This method starts the synchronization process, it parses method calling and
+     * then gives control to QueryExecutor.
+     * @param methodName name of called method
+     * @param args args of called method
+     * @return sucess or failure
+     */
     boolean synchronize(methodName, args)   {
         def queryDescriptor
         if((queryDescriptor = callingParser.parseFinder(persistentClass.getName(), methodName, args)) == null)  {
@@ -185,6 +239,12 @@ class RemoteDomainGormStaticApi<D> extends HibernateGormStaticApi<D>{
         return QueryExecutor.executeFinderQuery(queryDescriptor)
     }
 
+    /**
+     * Helper method checking if attribute contains value
+     * @param attribute
+     * @param value
+     * @return logical result of operation
+     */
     boolean contains(attribute, value)  {
         boolean isCollection = attribute instanceof Collection
         boolean isList = attribute instanceof List

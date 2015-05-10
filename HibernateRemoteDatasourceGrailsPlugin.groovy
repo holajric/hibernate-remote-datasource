@@ -5,6 +5,12 @@ import org.grails.datastore.mapping.transactions.DatastoreTransactionManager
 import org.codehaus.groovy.grails.orm.hibernate.HibernateDatastore
 import groovy.org.grails.datastore.remote.hibernate.parsers.calling.GormApiParser
 
+/**
+ * Plugin descriptor class, it is necesary for all Grails plugins,
+ * it contains basic descriptions and special methods that have access
+ * to specific parts of application such as application context, spring beans
+ * or it can catch application events.
+ */
 class HibernateRemoteDatasourceGrailsPlugin {
     // the plugin version
     def version = "0.1"
@@ -22,11 +28,11 @@ class HibernateRemoteDatasourceGrailsPlugin {
     def author = "Richard Holaj"
     def authorEmail = "holajr22@gmail.com"
     def description = '''\
-Brief summary/description of the plugin.
+This plugin allows developer to automatically synchronize domain classes with remote datasources.
 '''
 
     // URL to the plugin's documentation
-    def documentation = "http://grails.org/plugin/development"
+    //def documentation = "http://grails.org/plugin/development"
 
     // Extra (optional) plugin metadata
 
@@ -47,14 +53,16 @@ Brief summary/description of the plugin.
     def loadAfter = ['core', 'dataSource']
 
     def doWithWebDescriptor = { xml ->
-        // TODO Implement additions to web.xml (optional), this event occurs before
+
     }
 
     def doWithSpring = {
-        // TODO Implement runtime spring config (optional)
         mergeConfig(application)
     }
 
+    /** Merges default configuration from plugin with application configuration.
+     *  @param app application context
+     */
     private void mergeConfig(GrailsApplication app) {
         ConfigObject currentConfig = app.config
         ConfigSlurper slurper = new ConfigSlurper(Environment.getCurrent().getName());
@@ -65,10 +73,12 @@ Brief summary/description of the plugin.
     }
 
     def doWithDynamicMethods = { ctx ->
-        // TODO Implement registering dynamic methods to classes (optional)
 
     }
 
+    /**
+     * Enhances application datastores with plugin implementation of GORM API and sets this API as default
+     */
     def doWithApplicationContext = { applicationContext ->
         applicationContext.getBeansOfType(HibernateDatastore).values().each { HibernateDatastore datastore ->
             def enhancer = new RemoteDomainGormEnhancer(datastore, new DatastoreTransactionManager(datastore: datastore),applicationContext.grailsApplication, new GormApiParser())
@@ -77,16 +87,15 @@ Brief summary/description of the plugin.
     }
 
     def onChange = { event ->
-        // TODO Implement code that is executed when any artefact that this plugin is
-        // watching is modified and reloaded. The event contains: event.source,
-        // event.application, event.manager, event.ctx, and event.plugin.
+
     }
 
+    /** Changes saved configuration if config file is changed **/
     def onConfigChange = { event ->
         this.mergeConfig(application)
     }
 
     def onShutdown = { event ->
-        // TODO Implement code that is executed when the application shuts down (optional)
+
     }
 }

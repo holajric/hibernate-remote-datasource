@@ -11,7 +11,7 @@ import groovy.org.grails.datastore.remote.hibernate.query.Condition
 import groovy.org.grails.datastore.remote.hibernate.query.builder.formatters.Formatter
 
 /**
- * Created by richard on 18.2.15.
+ * Class that builds queries for REST remote sources.
  */
 @Log4j
 class RestQueryBuilder implements QueryBuilder {
@@ -19,6 +19,13 @@ class RestQueryBuilder implements QueryBuilder {
         return generateQuery(desc, "hash")
     }
 
+    /**
+     * Generates instance of RestRemoteQuery for given QueryDescriptor
+     * @params desc query descriptor
+     * @params prefix prefix for loading special endpoint for operations like
+     * authentication or data hash (optional)
+     * @return generated RestRemoteQuery for query
+     */
     RestRemoteQuery generateQuery(QueryDescriptor desc, String prefix = "") {
         if(!desc.entityName || desc.entityName.empty)   {
             log.error "Descriptor entityName is required"
@@ -68,6 +75,12 @@ class RestQueryBuilder implements QueryBuilder {
         return new RestRemoteQuery(method: operation["method"], url: tempUrl)
     }
 
+    /**
+     * This method checks if query is for single object or for collection
+     * @param desc query descriptor
+     * @param endpoint endpoint for query loaded from configuration
+     * @return if is single object or collection query
+     */
     boolean isSingleQuery(QueryDescriptor desc, String endpoint)  {
         return ((desc.conditionJoin == ConditionJoin.NONE) &&
                 (!desc.conditions.empty) &&
@@ -75,7 +88,15 @@ class RestQueryBuilder implements QueryBuilder {
                 (desc.conditions[0].comparator == Operator.EQUALS) &&
                 (endpoint?.contains("[:${desc.conditions[0].attribute}]")))
     }
-
+/**
+ * This method generates URL (except base URL part, that is given)
+ * for remote source for query, that is on collection of data.
+ * @param desc query descriptor
+ * @param operation map containing configuration for operation
+ * @param prefix prefix for loading special endpoint for operations like
+ * authentication or data hash (optional)
+ * @return part of URL after base URL for query
+ */
     String generateBatchQuery(QueryDescriptor desc, operation, prefix = "")    {
         if(desc.conditionJoin == ConditionJoin.OR && !desc.conditions.empty) {
             log.info "Rest queries do not support Or conditions, they will be skipped and filtered locally"
@@ -113,6 +134,12 @@ class RestQueryBuilder implements QueryBuilder {
         return tempUrl
     }
 
+    /**
+     * This method generates query params for condition in case it is supported.
+     * @param condition given condition
+     * @param desc given query descriptor
+     * @return query params string if possible otherwise empty string
+     */
     String generateConditionQuery(Condition condition, QueryDescriptor desc)  {
         String tempUrl = ""
         if (condition.comparator == Operator.EQUALS && condition instanceof SimpleCondition) {
@@ -128,6 +155,12 @@ class RestQueryBuilder implements QueryBuilder {
         return tempUrl
     }
 
+    /**
+     * Checks if condition is supported by remote data source.
+     * @param condition to be checked
+     * @param desc query descriptor
+     * @return if condition is or isn't supported
+     */
     boolean isConditionSupported(Condition condition, QueryDescriptor desc)  {
         if(!condition?.attribute || condition.attribute.empty)  {
             log.error "Condition attribute is required"
