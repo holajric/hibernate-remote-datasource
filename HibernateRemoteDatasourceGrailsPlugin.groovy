@@ -32,12 +32,12 @@ This plugin allows developer to automatically synchronize domain classes with re
 '''
 
     // URL to the plugin's documentation
-    //def documentation = "http://grails.org/plugin/development"
+    def documentation = "https://github.com/holajric/hibernate-remote-datasource"
 
     // Extra (optional) plugin metadata
 
     // License: one of 'APACHE', 'GPL2', 'GPL3'
-//    def license = "APACHE"
+    def license = "MIT"
 
     // Details of company behind the plugin (if there is one)
 //    def organization = [ name: "My Company", url: "http://www.my-company.com/" ]
