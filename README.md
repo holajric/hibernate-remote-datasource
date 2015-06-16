@@ -50,54 +50,32 @@ __mappingTransformations__ - this option allows to assign transformation functio
 __mergingStrategy__ - determines the way how data conflicts are solved, it is set to MergingStrategy enum value (FORCE_LOCAL, FORCE_REMOTE,
 PREFER_LOCAL or PREFER_REMOTE)
 
-__queryMapping__ - allows to map criterias to URL parameter it uses same syntax as endpoints with special parameter variables (value for SimpleCondition, lowerBound and upperBound for IntervalCondition); example of such mapping is criterium date BETWEEN mapped to URL: from=[:lowerBound]&to=[:upperBound].
+__queryMapping__ - allows to map criterias to URL parameter it uses same syntax as endpoints with special parameter variables ([:value] for SimpleCondition, [:lowerBound] and [:upperBound] for IntervalCondition); example of such mapping is criterium date BETWEEN mapped to URL: from=[:lowerBound]&to=[:upperBound].
 
 ### Operation configuration
 
-Every CRUD operation for domain can be configured independently. Mimo konfigurace operations lze v ní obsažené atributy nastavit globálně
-v rámci celé doménové třídy pro všechny operace pomocí konfigurace
-generalDefault, která obsahuje totožné možnosti nastavení. Konfigurace de-
-finovaná v generalDefault se použije v případě, že není nalezeno příslušné
-nastavení pro některou operaci. Aby bylo možno nastavit URL koncových
-bodů univerzálně, umožňuje generalDefault použít v jejich konfiguraci speciální
-proměnnou [:operation], do které je dosazen název volané operace, i
-na tuto proměnnou je možno použít formattery.
+Every CRUD operation for domain can be configured independently. 
 
-__method__ - nastavení HTTP metody použité pro připojení ke zdroji (GET,
+Also all attributes for operations can have assigned default values by using generalDefault configuration option. It can contain same attributes as operations, values in generalDefault are used in case that appropriate option for operation is not found. For general default option we use special variable [:operation] that contains name of executedoperation, we can also use formatters on it.
+
+__method__ - HTTP method used for data source connection (GET,
 POST, PUT, DELETE, ...)
 
-__endpoint__ - nastavení URL koncového bodu API, ke kterému se přistupuje
-v případě dotazu na jednu položku; URL umožňuje použití proměnné
-zastupující atribut doménové třídy použitý pro definování vyhledávacího
-dotazu a zároveň umožňuje použití formatterů zmíněných v sekci 2.2.4.2
+__endpoint__ - setting of API endpoint URL, that is accesed in case of single item query; URL allows to use variable representing name of domain class attribute that is used for query definition and also allows to use formatters which are explained further in documentaion
 
-__queryEndpoint__ - obdobné jako endpoint s tím rozdílem, že tento koncový
-bod API je určen pro dotazy na kolekce dat
+__queryEndpoint__ - same as endpoint but it is used for queries on data collections
 
-__(:prefix)Endpoint__ - podobné jako endpoint, tento endpoint se použije v situaci,
-kdy je hodnota parametru prefix při sestavování dotazu stejná
-jako prefix této konfigurace; například URL uložené v hashEndpoint se
-použije, pokud má prefix hodnotu hash
+__(:prefix)Endpoint__ - similiar to endpoint, but this one is used, when value of prefix parameter is same as prefix of this configuration; for example URL saved in hashEndpoint is used when prefix has value hash
 
-__(:prefix)QueryEndpoint__ - stejné jako předchozí konfigurace, ale slouží jako
-alternativa pro queryEndpoint, a nikoliv endpoint
+__(:prefix)QueryEndpoint__ - same as previous, but it is not alternative to endpoint, but to queryEndpoint
 
-__endpoint (:kritérium)__ - i tato konfigurace je podobná předchozím, rozdílem
-je, že tato je použita v situaci, kdy dotaz obsahuje dané kritérium - např.
-endpoint name LIKE se použije v okamžiku, kdy dotaz obsahuje podmínku
-typu LIKE pro atribut name; v URL lze používat na základě typu
-podmínky speciální proměnné, pro podmínku typu SimpleCondition
-je to proměnná [:value], pro IntervalCondition dvojice proměnných
-[:lowerBound] a [:upperBound]
+__endpoint (:kritérium)__ - this configuration is also similar to previous ones, difference is that this one is used in case, that query contains given criteria - for instance "endpoint name LIKE" is used in situation when query contains condition of type LIKE for attribute name; special variables based on condition type can be used in URL ([:value] for SimpleCondition, [:lowerBound] and [:upperBound] for IntervalCondition)
 
-__authentication__ - totožné jako stejnojmenný atribut v hlavní konfiguraci, ale
-umožňuje přepsat právě tento atribut pro konkrétní operaci
+__authentication__ - allows to override basic API authentication for operation
 
-__authenticationParams__ - totožné jako stejnojmenný atribut v hlavní konfi-
-guraci, ale umožňuje přepsat právě tento atribut pro konkrétní operaci
+__authenticationParams__ - allows to override basic API authenticationParams for operation
 
-__mergingStrategy__ - totožné jako stejnojmenný atribut v hlavní konfiguraci,
-ale umožňuje přepsat právě tento atribut pro konkrétní operaci
+__mergingStrategy__ - allows to override basic API mergingStrategy for operation
 
 ### Examples
 #### Minimal settings
@@ -228,19 +206,7 @@ class Event {
 ```
 
 ### Default settings
-Výchozí konfigurace modulu je v rámci nastavení aplikace uložena v položce
-grails.plugins.hibernateRemoteDatasource.defaults, ta obsahuje položky
-sourceType a queryType, obě nastavené na hodnotu „Rest“. Položka
-generalDefault určuje výchozí podobu pro endpoint a využívá pro to další
-speciální proměnnou [:entityName], která je při zpracování nahrazena ná-
-zvem třídy, výsledný koncový bod má podobu názevTřídy/názevoperace.
-Nastavení generalDefault rovněž určuje jako výchozí MergingStrategy hodnotu
-PREFER_LOCAL, tedy při řešení konfliktů je preferována lokální verze.
-Poslední položkou výchozího nastavení je položka operations, ta v první
-řadě definuje HTTP metody pro jednotlivé operace, GET pro READ, POST pro
-CREATE, PUT pro UPDATE a DELETE pro DELETE. Mimo to pro CREATE definuje
-mírně upravený endpoint, tj. v podobě názevTřídy/save, a pro READ jednak
-dodefinovává queryEndpoint v podobě názevTřídy a jednak upravuje
-endpoint do podoby názevTřídy/show/předanéId.
-Tato nastavení lze globálně předefinovat v souboru Config.groovy v aplikaci,
-která modul používá.
+WILL BE ADDED LATER
+
+### Formatters
+WILL BE ADDED LATER
