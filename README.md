@@ -7,9 +7,20 @@ Plugin works with most of REST resources and provides a simple API for integrati
 
 Configuration is accesible in every domain class in remoteMapping static attribute.
 
+## Usage
+
+Domains using this plugin can be used same way as standart domains:
+
+```groovy
+User u = new User(name:"John", lastname:"Doe");
+u.save();
+User.findAllByName("John");
+u.delete();
+```
+
+
 ## Configuration
 
-```
 ### Basic API
 __baseUrl__ - remote data source URL
 
@@ -125,33 +136,122 @@ class Todo {
 ```
 
 ```groovy
-...
-static remoteMapping = [
-    "baseUrl": "https://sirius.fit.cvut.cz/api/v1/",
-    "supportedParams": ["max", "offset"],
-    "paramMapping": [
-        "max": "limit"
-    ],
-    "local": ["bought", "sold", "exchangeLock"],
-    "allowed": [Operation.READ],
-    "mapping": [
-        "room": "links.room",
-        "course": "links.course",
-        "students": "links.students",
-        "teachers": "links.teachers"
-    ],
-    "dataPrefix":"events",
-    "mappingTransformations": [
-        ...
-    ],
-    "queryMapping": [
-        ...
-    ],
-    "operations":[
-        ...
+class Event {
+    Long id
+    String name
+    String note
+    Date starts_at
+    Date ends_at
+    int sequence_number
+    String room
+    int capacity
+    ExchangeLockState exchangeLock = ExchangeLockState.ON_DEMAND
+    String parallel
+    String event_type
+    
+    static belongsTo = [course:Course]
+    
+    static hasMany = [teachers: Person, students: Person,
+    bought: Exchange, sold: Exchange]
+    
+    static mappedBy = [bought:’bought’, sold: ’sold’]
+    
+    static mapping = {
+        id generator:’assigned’
+        course ignoreNotFound: true
+    }
+    
+    static constraints = {
+        teachers nullable:true
+        students nullable:true
+        parallel nullable:true
+        course nullable:true
+        room nullable:true
+        bought nullable:true
+        sold nullable:true
+        note nullable:true
+        name nullable:true
+    }
+    static remoteMapping = [
+        "baseUrl": "https://sirius.fit.cvut.cz/api/v1/",
+        "supportedParams": ["max", "offset"],
+        "paramMapping": [
+            "max": "limit"
+        ],
+        "local": ["bought", "sold", "exchangeLock"],
+        "allowed": [Operation.READ],
+        "mapping": [
+            "room": "links.room",
+            "course": "links.course",
+            "students": "links.students",
+            "teachers": "links.teachers"
+        ],
+        "dataPrefix":"events",
+        "mappingTransformations": [
+            "course": { course ->
+                if(course == null)
+                    return null
+                Course courseTemp = Course.get(course) ?: new Course();
+                courseTemp.code = course;
+                courseTemp.id = course;
+                courseTemp.save();
+                return courseTemp
+            },
+            "ends_at": { date ->
+                return Date.parse(’yyyy-MM-dd HH:mm:ss’,
+                                  date.replaceAll(’T’, ’’)
+                                  .replaceAll(’Z’,’’)
+                                  .tokenize(’.’)[0])
+            },
+            "starts_at": { date ->
+                ...
+            },
+            "students": { studentsList ->
+                List<Person> persons = []
+                studentsList.each { student ->
+                    Person person = Person.get(
+                                    student instanceof String ?
+                                    student : String.valueOf(student)
+                                    ) ?: new Person()
+                    person.username = student instanceof String ?
+                                      student : String.valueOf(student)
+                    person.save()
+                    persons << person
+                }
+                return persons
+            },
+            "teachers": { teachersList ->
+                ...
+            }
+        ],
+        "queryMapping": [
+            "starts_at GREATER_THAN_EQUALS":
+                "from=[:value|date<<yyyy-MM-dd’T’HH:mm:ss’Z’]",
+            "ends_at LESS_THAN_EQUALS":
+                "to=[:value|date<<yyyy-MM-dd’T’HH:mm:ss’Z’]",
+            "course EQUALS":
+                "course=[:value|get<<code]"
+        ],
+        "operations":[
+            (Operation.READ):[
+                "endpoint":
+                    "events/[:id]?access_token=xxx",
+                "queryEndpoint":
+                    "events?access_token=xxx",
+                "endpoint students CONTAINS":
+                    "people/[:value|get<<username]/events?access_token=xxx",
+                "endpoint teachers CONTAINS":
+                    "people/[:value|get<<username]/events?access_token=xxx",
+                "endpoint course EQUALS":
+                    "courses/[:value|get<<code]/events?access_token=xxx",
+                "endpoint room EQUALS":
+                    "rooms/[:value]/events?access_token=xxx"
+            ]
+        ]
     ]
-]
+}
 ...
+```
 
 ### Default settings
 Výchozí konfigurace modulu je v rámci nastavení aplikace uložena v položce
