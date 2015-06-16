@@ -18,7 +18,6 @@ User.findAllByName("John");
 u.delete();
 ```
 
-
 ## Configuration
 
 ### Basic API
@@ -30,45 +29,28 @@ __queryType__ - request type accepted by source; prefix of proper QueryBuilder i
 
 __authentication__ - authentication type; prefix of proper Authenticator implementation, for instance TokenAuthenticator
 
-__authenticationParams__ - parametry pro autentifikaci, zapsané v podobě
-dvojic ve tvaru názevParametru : hodnota; příklad parametru je token
-local - seznam atributů, které jsou uloženy lokálně, a nejsou tedy součástí
-vzdáleného zdroje
+__authenticationParams__ - authentication parameters, defined as pairs in format nameOfParameter : value; example of parameter is token
 
-__allowed__ - seznam povolených operací z výčtu Operation (CREATE, READ,
-UPDATE, DELETE); pokud není toto nastavení uvedeno, považují se za
-povolené všechny čtyři operace
+__local__ - list of local attributes, that are not part of remote source
 
-__supportedParams__ - seznam vzdáleným zdrojem povolených stránkovacích
-a řadících parametrů (max, offset, sort,order); pokud není toto nastavení
-uvedeno, považují se za povolené všechny čtyři parametry
+__allowed__ - list of allowed operations from Operation enum (CREATE, READ,
+UPDATE, DELETE); when this options is not set, all operations are allowed
 
-__paramMapping__ - mapování stránkovacích a řadicích parametrů na odpovídající
-názvy URL parametrů na vzdáleném serveru; pokud není parametr
-a jeho mapování uvedeno, předpokládá se stejný název obou
-parametrů; příkladem mapování může být časté mapování lokálního parametru
-max na parametr limit
+__supportedParams__ - list of pagination/sorting parameters (max, offset, sort, order) supported by remote source; when this options is not set, all parameters are allowed
 
-__mapping__ - mapování atributů doménové třídy na atributy vzdáleného zdroje,
-respektive hodnota klíče, na kterém je hodnota odpovídajícího atributu
-uložena v objektu typu JSONObject vráceném vzdáleným zdrojem;
-umožňuje přiřadit vnořené klíče oddělováním názvů tečkou, např.
-links.users; pokud nejsou atribut a jeho mapování uvedeny, předpokládá
-se, že klíč má hodnotu názvu atributu
+__paramMapping__ - mapping of pagination/sorting parameters to appropriate names of URL parameters on remote server; when mapping of parameter is not set, parameter is mapped to same named URL parameter; example is often mapping of local parameter max to URL parameter limit
 
-__dataPrefix__ - společný prefix pro všechny hodnoty nastavení mapping, respektive
-klíč obalovacího objektu, ve kterém je skutečný JSONObject
-reprezentující doménovou třídu obsažen
+__mapping__ - mapping of domain class attributes to remote source attributes, that means key in JSONObject response from remote source, that keeps value of attribute;
+it allows to assign nested keys by using dot delimiter, for instance links.user;  when attribute mapping is not set, we suppose it has same name as attribute
 
-__mappingTransformations__ - toto nastavení umožňuje každému atributu při-
-řadit transformační funkci, tj. funkci, která přijímá jako parametr odpovídající
-hodnotu ze vzdáleného zdroje, provede příslušné transformace
-a metodou vrácený výsledek je následně do atributu uložen; příkladem
-může být převod textové podoby data na objekt typu Date
+__dataPrefix__ - common prefix that is used for all values of mapping settings, that means key of object, that encapsulates JSONObject representing domain object
 
-__mergingStrategy__ - nastavuje, jakým způsobem se řeší datové konflikty, obsahuje
-hodnotu typu MergingStrategy(FORCE_LOCAL, FORCE_REMOTE,
-PREFER_LOCAL nebo PREFER_REMOTE)
+__mappingTransformations__ - this option allows to assign transformation function to every attribute, this function accepts value from remote source as parameter, makes the proper transformation and returned result is then saved to attribute; example  of such function is transforming date from text format to object of type Date
+
+__mergingStrategy__ - determines the way how data conflicts are solved, it is set to MergingStrategy enum value (FORCE_LOCAL, FORCE_REMOTE,
+PREFER_LOCAL or PREFER_REMOTE)
+
+__queryMapping__ - allows to map criterias to URL parameter it uses same syntax as endpoints with special parameter variables (value for SimpleCondition, lowerBound and upperBound for IntervalCondition); example of such mapping is criterium date BETWEEN mapped to URL: from=[:lowerBound]&to=[:upperBound].
 
 ### Operation configuration
 
@@ -117,15 +99,8 @@ guraci, ale umožňuje přepsat právě tento atribut pro konkrétní operaci
 __mergingStrategy__ - totožné jako stejnojmenný atribut v hlavní konfiguraci,
 ale umožňuje přepsat právě tento atribut pro konkrétní operaci
 
-
-### Query mapping
-Poslední nastavení, které nebylo zmíněno, je queryMapping, to umožňuje
-mapovat kritéria na parametry URL, stejně jako koncový bod parametrizovaný
-kritériem k tomu využívá příslušných speciálních proměnných. Příkladem
-takového mapování může být kritérium date BETWEEN namapované na
-část URL: from=[:lowerBound]&to=[:upperBound].
-
 ### Examples
+#### Minimal settings
 ```groovy
 class Todo {
     String text
@@ -134,7 +109,7 @@ class Todo {
     ]
 }
 ```
-
+#### Advanced settings
 ```groovy
 class Event {
     Long id
@@ -250,7 +225,6 @@ class Event {
         ]
     ]
 }
-...
 ```
 
 ### Default settings
